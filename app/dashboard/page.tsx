@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
+import { ConsistButton } from '@/components/dashboard/ConsistButton'
+import { CircleMembers } from '@/components/dashboard/CircleMembers'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -70,9 +72,17 @@ export default function DashboardPage() {
     return null
   }
 
+  if (!user || !circle) {
+    return null
+  }
+
+  // Check if consisted today (client-side calculation for now, could be passed from server)
+  const today = new Date().toISOString().split('T')[0]
+  const hasConsisted = user.last_consist_date === today
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4 pb-20">
+      <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <header className="flex items-center justify-between py-6">
           <div>
@@ -83,68 +93,78 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={signOut}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-all"
+            className="text-gray-500 hover:text-white transition-colors"
           >
-            Sign Out
+            ←
           </button>
         </header>
 
-        {/* Welcome Section */}
-        <div className="mt-8 bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Welcome back, {user.name}! 👋
-          </h2>
-          <p className="text-gray-400">
-            You're in the <span className="text-orange-500 font-semibold">{circle.name}</span> circle
-          </p>
+        {/* Consist Button Section */}
+        <section>
+          <ConsistButton 
+            hasConsisted={hasConsisted} 
+            currentStreak={user.current_streak || 0} 
+          />
+        </section>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-orange-500">{user.current_streak}</div>
-              <div className="text-sm text-gray-400 mt-1">Current Streak</div>
-            </div>
-            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-purple-500">{user.longest_streak}</div>
-              <div className="text-sm text-gray-400 mt-1">Longest Streak</div>
-            </div>
-            <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-green-500">{user.score}</div>
-              <div className="text-sm text-gray-400 mt-1">Total Points</div>
-            </div>
+        {/* User Stats Grid */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
+            <div className="text-2xl font-bold text-orange-500">{user.current_streak}</div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Streak</div>
           </div>
+          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
+            <div className="text-2xl font-bold text-purple-500">{user.longest_streak}</div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Record</div>
+          </div>
+          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
+            <div className="text-2xl font-bold text-green-500">{user.score}</div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Points</div>
+          </div>
+        </div>
 
-          {/* Circle Code */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-purple-500/10 border border-orange-500/30 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Circle Code</p>
-                <p className="text-2xl font-bold text-white font-mono tracking-wider">{circle.code}</p>
-              </div>
-              <p className="text-xs text-gray-500">Share with friends</p>
+        {/* Circle Members List */}
+        <section>
+            <CircleMembers 
+                circleId={circle.id} 
+                currentUserId={user.id} 
+            />
+        </section>
+
+        {/* Circle Code Card */}
+        <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-purple-500/10 rounded-full blur-2xl" />
+          
+          <div className="relative z-10">
+            <p className="text-sm text-gray-400 mb-2">Invite Friends</p>
+            <div className="flex items-center justify-between bg-black/20 rounded-xl p-3 border border-white/5">
+              <code className="text-xl font-bold text-white font-mono tracking-widest">
+                {circle.code}
+              </code>
+              <button 
+                onClick={() => navigator.clipboard.writeText(circle.code)}
+                className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Copy
+              </button>
             </div>
+            <p className="text-xs text-gray-500 mt-3">
+              Share this code with friends to add them to your circle.
+            </p>
           </div>
         </div>
 
         {/* Coming Soon Section */}
-        <div className="mt-8 bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800">
-          <h3 className="text-xl font-bold text-white mb-4">🚧 Coming Soon</h3>
-          <div className="space-y-3 text-gray-400">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <p>Daily "I Consisted Today" button</p>
+        <div className="pt-4 border-t border-white/5">
+          <h3 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-widest">Coming Soon</h3>
+          <div className="space-y-3 opacity-60">
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">👥</div>
+              <p className="text-sm">Circle Activity Feed</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <p>Circle members view with live updates</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <p>Push to Consist feature</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <p>Activity feed</p>
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🔥</div>
+              <p className="text-sm">Push Friends</p>
             </div>
           </div>
         </div>
