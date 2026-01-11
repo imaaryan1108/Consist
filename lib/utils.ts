@@ -64,7 +64,7 @@ export function calculateConsistPoints(
   isNewRecord: boolean
 } {
   const basePoints = 100
-  const pushBonus = wasPushed ? 20 : 0
+  const pushBonus = wasPushed ? 5 : 0
   let streakBonus = 0
   let isNewRecord = false
 

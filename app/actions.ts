@@ -28,11 +28,13 @@ export async function punchIn() {
     }
 
     // 3. Get user data for calculations
-    const { data: user, error: userError } = await supabase
+    const { data: userRaw, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single()
+    
+    const user = userRaw as any
 
     if (userError || !user || !user.circle_id) throw new Error('User not found or no circle')
 
@@ -45,13 +47,13 @@ export async function punchIn() {
       .limit(365)
 
     // 5. Check if was pushed today
-    const { data: pushes } = await supabase
+    const { data: pushesRaw } = await supabase
       .from('pushes')
-      .select('id')
+      .select('id, from_user_id')
       .eq('to_user_id', userId)
       .eq('date', today)
-      .limit(1)
 
+    const pushes = pushesRaw as any[]
     const wasPushed = !!(pushes && pushes.length > 0)
 
     // 6. Calculate new stats
@@ -127,6 +129,30 @@ export async function punchIn() {
       // Don't fail the request if just activity fails
     }
 
+    // 10. Reward the Pushers (Social Bonus)
+    if (pushes && pushes.length > 0) {
+        const uniquePushers = Array.from(new Set(pushes.map(p => p.from_user_id)))
+        
+        for (const pusherId of uniquePushers) {
+            // Fetch current score for safety (in real app use RPC for atomic increment)
+            const { data: pusher } = await supabase
+                .from('users')
+                .select('score')
+                .eq('id', pusherId)
+                .single()
+            
+            if (pusher) {
+                await supabase
+                    .from('users')
+                    .update({ score: (pusher.score || 0) + 2 })
+                    .eq('id', pusherId)
+                
+                // Optional: We could add an activity here like "Your push worked!", 
+                // but simpler to just let them see the "Consisted after push" activity
+            }
+        }
+    }
+
     revalidatePath('/dashboard')
     
     return { 
@@ -139,5 +165,95 @@ export async function punchIn() {
   } catch (error: any) {
     console.error('Punch-in error:', error)
     return { success: false, message: error.message || 'Failed to punch in' }
+  }
+}
+/**
+ * Send a push to another user
+ */
+export async function pushMember(targetUserId: string) {
+  const supabase = await createServerClient()
+  const today = getTodayDate()
+
+  try {
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    if (authError || !session) throw new Error('Not authenticated')
+    
+    const userId = session.user.id
+
+    if (userId === targetUserId) {
+        return { success: false, message: "You can't push yourself!" }
+    }
+
+    // 1. Check if sender has reached daily push limit (3)
+    const { count: pushCount, error: countError } = await supabase
+      .from('pushes')
+      .select('*', { count: 'exact', head: true })
+      .eq('from_user_id', userId)
+      .eq('date', today)
+
+    if (countError) throw countError
+    if ((pushCount || 0) >= 3) {
+        return { success: false, message: "You've used all 3 pushes for today!" }
+    }
+
+    // 2. Check if target has ALREADY consisted today
+    const { data: targetLog } = await supabase
+      .from('consist_logs')
+      .select('id')
+      .eq('user_id', targetUserId)
+      .eq('date', today)
+      .single()
+
+    if (targetLog) {
+        return { success: false, message: "They already consisted today!" }
+    }
+
+    // 3. Check if ALREADY pushed this user today
+    const { data: existingPush } = await supabase
+      .from('pushes')
+      .select('id')
+      .eq('from_user_id', userId)
+      .eq('to_user_id', targetUserId)
+      .eq('date', today)
+      .single()
+
+    if (existingPush) {
+        return { success: false, message: "You already pushed them today!" }
+    }
+
+    // 4. Record the push
+    const { error: pushError } = await supabase
+      .from('pushes')
+      .insert({
+        from_user_id: userId,
+        to_user_id: targetUserId,
+        date: today
+      })
+
+    if (pushError) throw pushError
+
+    // 5. Create Activity
+    // Fetch user details for the activity feed (need names)
+    const { data: sender } = await supabase.from('users').select('name, circle_id').eq('id', userId).single()
+    
+    if (sender && sender.circle_id) {
+        await supabase
+          .from('activities')
+          .insert({
+            circle_id: sender.circle_id,
+            actor_id: userId,
+            target_id: targetUserId,
+            type: 'push_sent',
+            metadata: {}
+          })
+    }
+    
+    revalidatePath('/dashboard')
+    
+    return { success: true, remainingPushes: 2 - (pushCount || 0) }
+
+  } catch (error: any) {
+    console.error('Push error:', error)
+    return { success: false, message: error.message || 'Failed to send push' }
   }
 }

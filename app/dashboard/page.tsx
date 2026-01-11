@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
 import { ConsistButton } from '@/components/dashboard/ConsistButton'
 import { CircleMembers } from '@/components/dashboard/CircleMembers'
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -24,13 +25,15 @@ export default function DashboardPage() {
 
       try {
         // Fetch user profile
-        const { data: userData, error: userError } = await supabase
+        const { data: userDataRaw, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('id', authUser.id)
           .single()
 
         if (userError) throw userError
+        
+        const userData = userDataRaw as unknown as User
 
         if (!userData.circle_id) {
           // No circle, redirect to onboarding
@@ -92,10 +95,10 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-sm mt-1">{circle.name}</p>
           </div>
           <button
-            onClick={signOut}
-            className="text-gray-500 hover:text-white transition-colors"
+            onClick={() => router.push('/profile')}
+            className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center text-lg border border-white/10"
           >
-            ←
+            {user.name.charAt(0).toUpperCase()}
           </button>
         </header>
 
@@ -129,6 +132,11 @@ export default function DashboardPage() {
                 circleId={circle.id} 
                 currentUserId={user.id} 
             />
+        </section>
+
+        {/* Activity Feed */}
+        <section>
+            <ActivityFeed circleId={circle.id} />
         </section>
 
         {/* Circle Code Card */}

@@ -50,9 +50,7 @@ export async function createCircle(name: string, userId: string): Promise<Circle
  */
 export async function joinCircle(code: string): Promise<Circle | null> {
   const { data, error } = await supabase
-    .from('circles')
-    .select('*')
-    .eq('code', code.toUpperCase())
+    .rpc('get_circle_by_code', { lookup_code: code })
     .single()
   
   if (error) {

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import confetti from 'canvas-confetti'
 import { punchIn } from '@/app/actions'
+import { motion } from 'framer-motion'
 import { getStreakMessage } from '@/lib/utils'
 
 interface ConsistButtonProps {
@@ -92,10 +93,12 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
 
   return (
     <div className="w-full space-y-2">
-      <button
+      <motion.button
         onClick={handleConsist}
         disabled={loading}
-        className="group relative w-full rounded-2xl bg-gradient-to-r from-orange-500 to-purple-600 p-[3px] transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/20 active:scale-[0.98]"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.95 }}
+        className="group relative w-full rounded-2xl bg-gradient-to-r from-orange-500 to-purple-600 p-[3px] transition-all hover:shadow-xl hover:shadow-orange-500/20"
       >
         <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="relative w-full bg-slate-900 rounded-[13px] flex flex-col items-center justify-center gap-2 py-6 group-hover:bg-slate-900/90 transition-all">
@@ -109,7 +112,13 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
             </div>
           ) : (
             <>
-              <span className="text-4xl">👊</span>
+              <motion.span 
+                animate={{ scale: [1, 1.2, 1] }} 
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="text-4xl"
+              >
+                👊
+              </motion.span>
               <span className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent group-hover:text-white transition-colors">
                 I Consisted Today
               </span>
@@ -119,7 +128,7 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
             </>
           )}
         </div>
-      </button>
+      </motion.button>
 
       {error && (
         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-center text-red-400 text-sm">

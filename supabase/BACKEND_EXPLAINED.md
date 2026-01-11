@@ -1,3 +1,4 @@
+git branch -M main
 # Backend Architecture Explained: Supabase vs Express
 
 A comprehensive guide for developers coming from Express.js to understand Supabase.
