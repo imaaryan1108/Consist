@@ -167,12 +167,25 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-widest">Coming Soon</h3>
           <div className="space-y-3 opacity-60">
             <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">👥</div>
-              <p className="text-sm">Circle Activity Feed</p>
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🍎</div>
+              <div>
+                <p className="text-sm text-gray-300">Diet & Macro Logging</p>
+                <p className="text-[10px] text-gray-600">Track calories, protein & more</p>
+              </div>
             </div>
             <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🔥</div>
-              <p className="text-sm">Push Friends</p>
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🏆</div>
+              <div>
+                 <p className="text-sm text-gray-300">Levels & Badges</p>
+                 <p className="text-[10px] text-gray-600">Rookie → Beast → Elite</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">�</div>
+               <div>
+                <p className="text-sm text-gray-300">Visual Progress</p>
+                <p className="text-[10px] text-gray-600">Heatmaps & Consistency Graphs</p>
+              </div>
             </div>
           </div>
         </div>
