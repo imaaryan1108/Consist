@@ -9,29 +9,39 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
+          DEFAULT: '#C6FF00',
+          50: '#f9ffeb',
+          100: '#f1ffd1',
+          200: '#e1ffab',
+          300: '#c6ff00', // Neon Lime
+          400: '#b4e600',
+          500: '#9bc600',
+          600: '#799a00',
+          700: '#5b7400',
+          800: '#485c00',
+          900: '#3c4d05',
         },
-        secondary: {
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
+        charcoal: {
+          DEFAULT: '#0D0D0D',
+          950: '#050505',
+          900: '#0D0D0D',
+          800: '#1A1A1A',
+          700: '#262626',
         },
+        slate: {
+          DEFAULT: '#94A3B8',
+          950: '#0F172A',
+          400: '#94A3B8',
+        }
+      },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+        '4xl': '2rem',
+      },
+      boxShadow: {
+        'neon': '0 0 15px -3px rgba(198, 255, 0, 0.3), 0 0 6px -2px rgba(198, 255, 0, 0.1)',
+        'neon-strong': '0 0 25px -5px rgba(198, 255, 0, 0.4), 0 0 10px -2px rgba(198, 255, 0, 0.2)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

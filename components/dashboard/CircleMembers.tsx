@@ -123,10 +123,10 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Circle Members</h3>
-            <span className="text-xs text-gray-500">{members.length} members</span>
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] italic">The Circle</h3>
+            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{members.length} Active Members</span>
         </div>
 
       <AnimatePresence mode='popLayout'>
@@ -138,49 +138,49 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
         return (
           <motion.div
             key={member.id}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             layout
             className={`
-              relative overflow-hidden rounded-2xl p-4 border transition-all
+              relative overflow-hidden rounded-3xl p-5 border transition-all group
               ${hasConsisted 
-                ? 'bg-slate-900/80 border-green-500/20 shadow-lg shadow-green-900/10' 
-                : 'bg-slate-900/40 border-white/5 opacity-80'
+                ? 'bg-primary/5 border-primary/20 shadow-neon shadow-primary/5' 
+                : 'bg-white/5 border-white/5 opacity-60'
               }
             `}
           >
             <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 {/* Status Indicator */}
                 <motion.div 
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className={`
-                  w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-inner
+                  w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg border-2
                   ${hasConsisted 
-                    ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-green-900/50' 
-                    : 'bg-slate-800 text-gray-500'
+                    ? 'bg-primary border-primary text-charcoal' 
+                    : 'bg-charcoal-700 border-white/5 text-slate-600'
                   }
                 `}>
-                  {hasConsisted ? '✅' : '💤'}
+                  {hasConsisted ? '🔥' : '💤'}
                 </motion.div>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className={`font-bold ${isMe ? 'text-white' : 'text-gray-300'}`}>
-                      {isMe ? 'You' : member.name}
+                    <p className={`text-sm font-black uppercase tracking-tight ${isMe || hasConsisted ? 'text-white' : 'text-slate-500'}`}>
+                      {isMe ? 'YOU' : member.name}
                     </p>
                     {isMe && (
-                        <span className="text-[10px] bg-white/10 text-gray-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            Me
+                        <span className="text-[8px] bg-white/10 text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+                            YOU
                         </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-[10px] font-black uppercase tracking-widest mt-1">
                     {hasConsisted 
-                        ? `${member.current_streak} day streak 🔥` 
-                        : 'Hasn\'t consisted yet'}
+                        ? <span className="text-primary italic">STREAK: {member.current_streak}D</span> 
+                        : <span className="text-slate-600 italic">INACTIVE</span>}
                   </p>
                 </div>
               </div>
@@ -193,30 +193,29 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handlePush(member.id, member.name)}
                         disabled={!!pushLoading}
-                        className="group flex items-center gap-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 bg-primary text-charcoal px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-neon"
                     >
                         {pushLoading === member.id ? '...' : (
                             <>
-                                <span>👉</span>
                                 <span>PUSH</span>
                             </>
                         )}
                     </motion.button>
                 ) : (
-                    <>
-                        <div className={`text-xl font-bold ${hasConsisted ? 'text-green-400' : 'text-gray-600'}`}>
+                    <div className="flex flex-col items-end">
+                        <div className={`text-xl font-black italic tracking-tighter ${hasConsisted ? 'text-primary' : 'text-slate-700'}`}>
                             {member.score || 0}
                         </div>
-                        <div className="text-[10px] text-gray-600 uppercase tracking-wider">Points</div>
-                    </>
+                        <div className="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em]">SCORE</div>
+                    </div>
                 )}
               </div>
             </div>
             
-            {/* Background Glow for Active Users */}
-            {hasConsisted && (
-                <div className="absolute -right-4 -top-12 w-24 h-24 bg-green-500/10 rounded-full blur-2xl" />
-            )}
+            {/* Minimal Decorative Node */}
+            <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none`}>
+                <span className="text-6xl font-black italic select-none">#{index + 1}</span>
+            </div>
             </motion.div>
         )
       })}

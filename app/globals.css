@@ -4,7 +4,17 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased;
+    @apply font-sans antialiased bg-charcoal text-white selection:bg-primary selection:text-charcoal;
+  }
+}
+
+@layer components {
+  .neon-glow {
+    @apply shadow-neon hover:shadow-neon-strong transition-shadow duration-300;
+  }
+
+  .glass-card {
+    @apply bg-charcoal-800/50 backdrop-blur-md border border-white/5;
   }
 }
 

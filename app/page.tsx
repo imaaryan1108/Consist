@@ -68,23 +68,30 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4">
-      <div className="w-full max-w-md space-y-8">
+    <main className="min-h-screen flex items-center justify-center bg-charcoal p-4 relative overflow-hidden">
+      {/* Background Decorative Element */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Hero Section */}
         <div className="text-center space-y-4">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-orange-500 to-purple-600 bg-clip-text text-transparent">
-            Consist
+          <h1 className="text-7xl font-black text-white tracking-tighter">
+            CONSIST<span className="text-primary italic">.</span>
           </h1>
-          <p className="text-xl text-gray-300">
-            Build consistency together through daily gym check-ins, streaks, and social accountability.
+          <p className="text-xl text-slate-400 font-medium">
+            Build consistency together. <br/>
+            <span className="text-white">Stay accountable. Reach elite status.</span>
           </p>
         </div>
 
         {/* Auth Form */}
-        <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl">
+        <div className="glass-card rounded-[2rem] p-8 shadow-2xl">
           <form onSubmit={handleMagicLink} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
                 Email Address
               </label>
               <input
@@ -94,15 +101,15 @@ export default function Home() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
                 disabled={loading}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-5 py-4 bg-charcoal-700 border border-white/5 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-50"
                 required
               />
             </div>
 
             {message && (
-              <div className={`p-4 rounded-lg ${
+              <div className={`p-4 rounded-xl text-sm font-medium ${
                 message.type === 'success' 
-                  ? 'bg-green-500/10 border border-green-500/20 text-green-400' 
+                  ? 'bg-primary/10 border border-primary/20 text-primary' 
                   : 'bg-red-500/10 border border-red-500/20 text-red-400'
               }`}>
                 {message.text}
@@ -112,7 +119,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-8 py-5 bg-primary text-charcoal font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-neon disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed uppercase tracking-tighter text-lg"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -123,29 +130,29 @@ export default function Home() {
                   Sending...
                 </span>
               ) : (
-                'Get Started with Magic Link'
+                'Get Magic Link'
               )}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-400">
-            No password needed! We'll send you a magic link to sign in.
+          <p className="mt-6 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+            No password needed! We'll send you a link.
           </p>
         </div>
 
         {/* Feature Highlights */}
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="space-y-2">
-            <div className="text-3xl">🔥</div>
-            <p className="text-sm text-gray-400">Build Streaks</p>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="glass-card rounded-[1.5rem] p-4 text-center">
+            <div className="text-2xl mb-1">🔥</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Streaks</p>
           </div>
-          <div className="space-y-2">
-            <div className="text-3xl">👥</div>
-            <p className="text-sm text-gray-400">Stay Accountable</p>
+          <div className="glass-card rounded-[1.5rem] p-4 text-center">
+            <div className="text-2xl mb-1">👥</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Circles</p>
           </div>
-          <div className="space-y-2">
-            <div className="text-3xl">⚡</div>
-            <p className="text-sm text-gray-400">Show Up Daily</p>
+          <div className="glass-card rounded-[1.5rem] p-4 text-center border-primary/30">
+            <div className="text-2xl mb-1">⚡</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-primary">Daily</p>
           </div>
         </div>
       </div>

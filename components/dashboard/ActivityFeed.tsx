@@ -93,7 +93,6 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
     const actorName = activity.actor?.name || 'Unknown'
     const targetName = activity.target?.name || 'Someone'
     
-    // Parse metadata safely
     const meta: any = typeof activity.metadata === 'string' 
         ? JSON.parse(activity.metadata) 
         : activity.metadata || {}
@@ -102,84 +101,88 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
       case 'consisted':
         return {
           icon: '🔥',
-          color: 'text-orange-400',
-          bg: 'bg-orange-500/10',
-          border: 'border-orange-500/20',
+          color: 'text-primary',
+          bg: 'bg-primary/5',
+          border: 'border-white/5',
           text: (
-            <span>
-              <span className="font-bold text-white">{actorName}</span> consisted!
-              {meta.streak > 1 && <span className="text-gray-400"> ({meta.streak} day streak)</span>}
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> PUNCHED IN
+              {meta.streak > 1 && <span className="text-slate-500 font-bold ml-2 italic">#{meta.streak} STREAK</span>}
             </span>
           )
         }
       case 'streak_milestone':
         return {
           icon: '🏆',
-          color: 'text-yellow-400',
-          bg: 'bg-yellow-500/10',
-          border: 'border-yellow-500/20',
+          color: 'text-primary',
+          bg: 'bg-primary/10',
+          border: 'border-primary/20',
           text: (
-            <span>
-              <span className="font-bold text-white">{actorName}</span> hit a {meta.streak} day streak! Legendary!
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> HIT <span className="text-primary font-black italic">{meta.streak} DAYS</span>
             </span>
           )
         }
       case 'consisted_after_push':
         return {
           icon: '🤝',
-          color: 'text-purple-400',
-          bg: 'bg-purple-500/10',
-          border: 'border-purple-500/20',
+          color: 'text-white',
+          bg: 'bg-white/5',
+          border: 'border-white/10',
           text: (
-            <span>
-              <span className="font-bold text-white">{actorName}</span> consisted after a push! Teamwork!
+            <span className="uppercase tracking-tighter font-bold">
+              <span className="text-white">{actorName}</span> ANSWERED THE PUSH
             </span>
           )
         }
        case 'push_sent':
         return {
           icon: '👉',
-          color: 'text-blue-400',
-          bg: 'bg-blue-500/10',
-          border: 'border-blue-500/20',
+          color: 'text-slate-400',
+          bg: 'bg-white/5',
+          border: 'border-white/5',
           text: (
-             <span>
-              <span className="font-bold text-white">{actorName}</span> pushed <span className="font-bold text-white">{targetName}</span> to consist!
+             <span className="uppercase tracking-tighter text-slate-400">
+              <span className="font-black text-white">{actorName}</span> NUDGED <span className="font-black text-white">{targetName}</span>
             </span>
           )
         }
       default:
         return {
           icon: '📝',
-          color: 'text-gray-400',
-          bg: 'bg-slate-800',
-          border: 'border-slate-700',
-          text: <span>{actorName} did something</span>
+          color: 'text-slate-500',
+          bg: 'bg-white/5',
+          border: 'border-white/5',
+          text: <span className="uppercase tracking-tighter">{actorName} UPDATED</span>
         }
     }
   }
 
   if (loading) {
-    return <div className="text-center text-gray-500 py-4 text-sm">Loading activity...</div>
+    return (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-600">Syncing Activity</p>
+        </div>
+    )
   }
 
   if (activities.length === 0) {
     return (
-        <div className="text-center py-8 bg-slate-900/30 rounded-2xl border border-white/5 border-dashed">
-            <div className="text-2xl mb-2">🍃</div>
-            <p className="text-gray-400 text-sm">No activity yet.</p>
-            <p className="text-gray-600 text-xs mt-1">Be the first to punch in!</p>
+        <div className="text-center py-12 glass-card rounded-[2rem] border-dashed">
+            <div className="text-4xl mb-4 grayscale opacity-20">🍃</div>
+            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">No pulse detected.</p>
+            <p className="text-slate-600 text-[10px] uppercase mt-2 font-bold tracking-wider">Start the grind to wake up the feed.</p>
         </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest px-1">Recent Activity</h3>
+    <div className="space-y-6">
+      <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] px-1 italic">Circle Pulse</h3>
       
-      <div className="space-y-3 relative">
-        {/* Timeline Line */}
-        <div className="absolute left-6 top-4 bottom-4 w-px bg-slate-800" />
+      <div className="space-y-4 relative">
+        <div className="absolute left-[23px] top-6 bottom-6 w-px bg-primary/20" />
 
         <AnimatePresence mode='popLayout'>
         {activities.map((activity, index) => {
@@ -188,25 +191,28 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
           return (
             <motion.div 
                 key={activity.id}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 layout
-                className="relative pl-12"
+                className="relative pl-14"
             >
-               {/* Timeline Node */}
                <div className={`
-                    absolute left-3 top-3 w-6 h-6 -ml-3 rounded-full border-4 border-slate-950 flex items-center justify-center text-xs
-                    ${content.bg} ${content.icon === '🔥' ? 'animate-pulse' : ''}
+                    absolute left-0 top-3 w-12 h-12 rounded-2xl border-[3px] border-charcoal flex items-center justify-center text-lg z-10
+                    ${content.bg} ${content.icon === '🔥' || content.icon === '🏆' ? 'neon-glow shadow-primary/20' : ''}
                `}>
                     {content.icon}
                </div>
 
-              <div className={`p-4 rounded-xl border ${content.bg} ${content.border} backdrop-blur-sm`}>
-                <div className="text-sm text-gray-300">
+              <div className={`p-5 rounded-3xl border ${content.bg} ${content.border} backdrop-blur-sm relative overflow-hidden group`}>
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <span className="text-4xl font-black italic select-none">#{activities.length - index}</span>
+                </div>
+                
+                <div className="text-xs text-white font-medium relative z-10 font-bold">
                     {content.text}
                 </div>
-                <div className="text-[10px] text-gray-500 mt-2 font-medium uppercase tracking-wide">
+                <div className="text-[10px] text-slate-600 mt-2 font-black uppercase tracking-widest">
                   {formatRelativeTime(activity.created_at)}
                 </div>
               </div>

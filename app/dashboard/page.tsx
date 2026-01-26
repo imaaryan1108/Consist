@@ -84,26 +84,31 @@ export default function DashboardPage() {
   const hasConsisted = user.last_consist_date === today
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4 pb-20">
-      <div className="max-w-md mx-auto space-y-6">
+    <main className="min-h-screen bg-charcoal p-4 pb-20 relative overflow-hidden">
+      {/* Background Decorative Element */}
+      <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -right-[10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="max-w-md mx-auto space-y-6 relative z-10">
         {/* Header */}
         <header className="flex items-center justify-between py-6">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-purple-600 bg-clip-text text-transparent">
-              Consist
+            <h1 className="text-4xl font-black text-white tracking-tighter">
+                CONSIST<span className="text-primary italic">.</span>
             </h1>
-            <p className="text-gray-400 text-sm mt-1">{circle.name}</p>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1 italic">{circle.name}</p>
           </div>
           <button
             onClick={() => router.push('/profile')}
-            className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center text-lg border border-white/10"
+            className="w-12 h-12 rounded-2xl bg-charcoal-700 border border-white/10 hover:border-primary/50 transition-all flex items-center justify-center text-xl font-bold shadow-lg"
           >
             {user.name.charAt(0).toUpperCase()}
           </button>
         </header>
 
         {/* Consist Button Section */}
-        <section>
+        <section className="neon-glow rounded-[2.5rem]">
           <ConsistButton 
             hasConsisted={hasConsisted} 
             currentStreak={user.current_streak || 0} 
@@ -112,17 +117,17 @@ export default function DashboardPage() {
 
         {/* User Stats Grid */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-orange-500">{user.current_streak}</div>
-            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Streak</div>
+          <div className="glass-card rounded-3xl p-5 text-center">
+            <div className="text-3xl font-black text-white">{user.current_streak}</div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Streak</div>
           </div>
-          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-purple-500">{user.longest_streak}</div>
-            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Record</div>
+          <div className="glass-card rounded-3xl p-5 text-center border-primary/20">
+            <div className="text-3xl font-black text-primary">{user.longest_streak}</div>
+            <div className="text-[10px] uppercase tracking-widest text-primary/50 font-bold mt-1">Record</div>
           </div>
-          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-green-500">{user.score}</div>
-            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mt-1">Points</div>
+          <div className="glass-card rounded-3xl p-5 text-center">
+            <div className="text-3xl font-black text-white">{user.score}</div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Points</div>
           </div>
         </div>
 
@@ -140,51 +145,42 @@ export default function DashboardPage() {
         </section>
 
         {/* Circle Code Card */}
-        <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-purple-500/10 rounded-full blur-2xl" />
-          
+        <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-sm text-gray-400 mb-2">Invite Friends</p>
-            <div className="flex items-center justify-between bg-black/20 rounded-xl p-3 border border-white/5">
-              <code className="text-xl font-bold text-white font-mono tracking-widest">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Invite Friends</p>
+            <div className="flex items-center justify-between bg-black/40 rounded-2xl p-4 border border-white/5">
+              <code className="text-2xl font-black text-white tracking-[0.2em]">
                 {circle.code}
               </code>
               <button 
                 onClick={() => navigator.clipboard.writeText(circle.code)}
-                className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors"
+                className="text-xs bg-primary text-charcoal font-black px-4 py-2 rounded-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter"
               >
                 Copy
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Share this code with friends to add them to your circle.
+            <p className="text-[10px] text-slate-500 font-medium mt-4 uppercase tracking-wider text-center">
+              Share this code to build your circle.
             </p>
           </div>
         </div>
 
         {/* Coming Soon Section */}
-        <div className="pt-4 border-t border-white/5">
-          <h3 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-widest">Coming Soon</h3>
-          <div className="space-y-3 opacity-60">
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🍎</div>
+        <div className="pt-6 border-t border-white/5">
+          <h3 className="text-xs font-black text-slate-500 mb-6 uppercase tracking-[0.2em]">Roadmap</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-3xl border border-white/5 grayscale opacity-50">
+              <div className="w-10 h-10 rounded-2xl bg-charcoal-700 flex items-center justify-center text-lg">🍎</div>
               <div>
-                <p className="text-sm text-gray-300">Diet & Macro Logging</p>
-                <p className="text-[10px] text-gray-600">Track calories, protein & more</p>
+                <p className="text-xs font-bold text-white uppercase tracking-wider">Diet & Macro Logging</p>
+                <p className="text-[10px] text-slate-600 font-medium uppercase mt-1">Coming Soon</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">🏆</div>
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-3xl border border-white/5 grayscale opacity-50">
+              <div className="w-10 h-10 rounded-2xl bg-charcoal-700 flex items-center justify-center text-lg">🏆</div>
               <div>
-                 <p className="text-sm text-gray-300">Levels & Badges</p>
-                 <p className="text-[10px] text-gray-600">Rookie → Beast → Elite</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">�</div>
-               <div>
-                <p className="text-sm text-gray-300">Visual Progress</p>
-                <p className="text-[10px] text-gray-600">Heatmaps & Consistency Graphs</p>
+                 <p className="text-xs font-bold text-white uppercase tracking-wider">Levels & Badges</p>
+                 <p className="text-[10px] text-slate-600 font-medium uppercase mt-1">Coming Soon</p>
               </div>
             </div>
           </div>

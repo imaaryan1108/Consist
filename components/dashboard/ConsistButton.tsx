@@ -35,7 +35,6 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
       setConsisted(true)
       if (result.streak) setStreak(result.streak)
       
-      // Update the dashboard data immediately
       router.refresh()
       
       // FIRE CONFETTI! 🎉
@@ -48,14 +47,14 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ['#f97316', '#a855f7', '#ec4899'] // Orange, Purple, Pink
+          colors: ['#C6FF00', '#D9FF66', '#E5FF99'] // Lime shades
         })
         confetti({
           particleCount: 2,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ['#f97316', '#a855f7', '#ec4899']
+          colors: ['#C6FF00', '#D9FF66', '#E5FF99']
         })
 
         if (Date.now() < end) {
@@ -77,13 +76,13 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
       <div className="w-full">
         <button
           disabled
-          className="w-full py-6 rounded-2xl bg-slate-800 border-2 border-green-500/30 text-green-400 font-bold text-xl flex flex-col items-center justify-center gap-2 transition-all cursor-default"
+          className="w-full py-8 rounded-[2.5rem] bg-charcoal-700 border-2 border-primary/20 text-primary font-black text-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-default shadow-neon"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">✅</span>
-            <span>You Consisted Today!</span>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">✅</span>
+            <span className="tracking-tighter uppercase">ELITE CONSISTENCY</span>
           </div>
-          <p className="text-sm font-normal text-gray-400 opacity-75">
+          <p className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em]">
             {getStreakMessage(streak)}
           </p>
         </button>
@@ -92,46 +91,47 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
   }
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-4">
       <motion.button
         onClick={handleConsist}
         disabled={loading}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.95 }}
-        className="group relative w-full rounded-2xl bg-gradient-to-r from-orange-500 to-purple-600 p-[3px] transition-all hover:shadow-xl hover:shadow-orange-500/20"
+        whileHover={{ scale: 1.02, y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        className="group relative w-full rounded-[2.5rem] bg-primary p-1 transition-all"
       >
-        <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="relative w-full bg-slate-900 rounded-[13px] flex flex-col items-center justify-center gap-2 py-6 group-hover:bg-slate-900/90 transition-all">
+        <div className="absolute inset-0 bg-white/20 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative w-full bg-charcoal rounded-[2.2rem] flex flex-col items-center justify-center gap-3 py-10 group-hover:bg-charcoal/90 transition-all">
           {loading ? (
-            <div className="flex items-center gap-2 text-white/50">
-              <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 text-primary">
+              <svg className="animate-spin h-8 w-8" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span>Punching in...</span>
             </div>
           ) : (
             <>
-              <motion.span 
-                animate={{ scale: [1, 1.2, 1] }} 
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="text-4xl"
+              <motion.div 
+                animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} 
+                transition={{ repeat: Infinity, duration: 4 }}
+                className="text-6xl"
               >
                 👊
-              </motion.span>
-              <span className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent group-hover:text-white transition-colors">
-                I Consisted Today
-              </span>
-              <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">
-                Tap to maintain streak
-              </p>
+              </motion.div>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-black text-white tracking-tighter uppercase italic group-hover:text-primary transition-colors">
+                  PUNCH IN
+                </span>
+                <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1">
+                  Commit to the grind
+                </span>
+              </div>
             </>
           )}
         </div>
       </motion.button>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-center text-red-400 text-sm">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-400 text-xs font-bold uppercase tracking-widest">
           {error}
         </div>
       )}
