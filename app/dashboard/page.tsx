@@ -8,16 +8,33 @@ import { Database } from '@/types/database.types'
 import { ConsistButton } from '@/components/dashboard/ConsistButton'
 import { CircleMembers } from '@/components/dashboard/CircleMembers'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
+import { MilestoneToast } from '@/components/transformation/MilestoneToast'
+import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
+import { getBodyProfile } from '@/app/actions/body-profile'
+import { getTarget, getTargetProgress } from '@/app/actions/targets'
+import { MotivationalQuoteCard } from '@/components/motivation/MotivationalQuoteCard'
+import { TargetWeightHero } from '@/components/motivation/TargetWeightHero'
+import { StreakCelebration } from '@/components/motivation/StreakCelebration'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
+type Milestone = Database['public']['Tables']['milestones']['Row']
+type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
+type Target = Database['public']['Tables']['targets']['Row']
 
 export default function DashboardPage() {
   const router = useRouter()
   const { user: authUser, loading: authLoading, signOut } = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [circle, setCircle] = useState<Circle | null>(null)
+  const [bodyProfile, setBodyProfile] = useState<BodyProfile | null>(null)
+  const [target, setTarget] = useState<Target | null>(null)
+  const [targetProgress, setTargetProgress] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Transformation feature states
+  const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -53,6 +70,19 @@ export default function DashboardPage() {
         if (circleError) throw circleError
 
         setCircle(circleData)
+
+        // Fetch body profile for weekly check-in modal
+        const profileData = await getBodyProfile()
+        setBodyProfile(profileData)
+        
+        // Fetch target and progress
+        const targetData = await getTarget()
+        setTarget(targetData)
+        
+        if (targetData) {
+          const progressData = await getTargetProgress()
+          setTargetProgress(progressData)
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -107,13 +137,62 @@ export default function DashboardPage() {
           </button>
         </header>
 
+        {/* Milestone Toast */}
+        {milestones.length > 0 && (
+          <MilestoneToast
+            milestones={milestones}
+            onClose={(id) => {
+              setMilestones(prev => prev.filter(m => m.id !== id))
+            }}
+          />
+        )}
+
+        {/* Weekly Check-in Modal */}
+        {showWeeklyCheckin && bodyProfile && (
+          <WeeklyCheckinModal
+            bodyProfile={bodyProfile}
+            onClose={() => setShowWeeklyCheckin(false)}
+            onSuccess={() => {
+              router.refresh()
+              const fetchProfile = async () => {
+                const updated = await getBodyProfile()
+                if (updated) setBodyProfile(updated)
+              }
+              fetchProfile()
+            }}
+          />
+        )}
+
         {/* Consist Button Section */}
         <section className="neon-glow rounded-[2.5rem]">
           <ConsistButton 
             hasConsisted={hasConsisted} 
-            currentStreak={user.current_streak || 0} 
+            currentStreak={user.current_streak || 0}
+            onMilestones={(newMilestones) => setMilestones(newMilestones)}
+            onWeeklyCheckinPrompt={() => setShowWeeklyCheckin(true)}
           />
         </section>
+
+        {/* Motivational Quote */}
+        <MotivationalQuoteCard />
+
+        {/* Target Weight Hero (if target exists) */}
+        {target && bodyProfile && targetProgress && (
+          <TargetWeightHero
+            currentWeight={bodyProfile.current_weight_kg}
+            targetWeight={target.target_weight_kg}
+            targetDate={target.target_date}
+            weightLost={targetProgress.weight_lost_kg}
+          />
+        )}
+
+        {/* Streak Celebration */}
+        {(user.current_streak ?? 0) > 0 && (
+          <StreakCelebration
+            streak={user.current_streak ?? 0}
+            showCelebration={(user.current_streak ?? 0) % 7 === 0}
+          />
+        )}
 
         {/* User Stats Grid */}
         <div className="grid grid-cols-3 gap-3">
@@ -165,7 +244,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Coming Soon Section */}
+        {/* Coming Soon Section
         <div className="pt-6 border-t border-white/5">
           <h3 className="text-xs font-black text-slate-500 mb-6 uppercase tracking-[0.2em]">Roadmap</h3>
           <div className="space-y-4">
@@ -184,7 +263,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </main>
   )

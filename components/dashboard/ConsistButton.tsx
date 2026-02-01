@@ -6,13 +6,23 @@ import confetti from 'canvas-confetti'
 import { punchIn } from '@/app/actions'
 import { motion } from 'framer-motion'
 import { getStreakMessage } from '@/lib/utils'
+import { Database } from '@/types/database.types'
+
+type Milestone = Database['public']['Tables']['milestones']['Row']
 
 interface ConsistButtonProps {
   hasConsisted: boolean
   currentStreak: number
+  onMilestones?: (milestones: Milestone[]) => void
+  onWeeklyCheckinPrompt?: () => void
 }
 
-export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProps) {
+export function ConsistButton({ 
+  hasConsisted, 
+  currentStreak,
+  onMilestones,
+  onWeeklyCheckinPrompt
+}: ConsistButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [consisted, setConsisted] = useState(hasConsisted)
@@ -34,6 +44,16 @@ export function ConsistButton({ hasConsisted, currentStreak }: ConsistButtonProp
 
       setConsisted(true)
       if (result.streak) setStreak(result.streak)
+      
+      // Handle new milestones
+      if (result.newMilestones && result.newMilestones.length > 0) {
+        onMilestones?.(result.newMilestones)
+      }
+
+      // Handle weekly check-in prompt
+      if (result.shouldWeeklyCheckin) {
+        onWeeklyCheckinPrompt?.()
+      }
       
       router.refresh()
       

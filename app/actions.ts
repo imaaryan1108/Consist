@@ -3,6 +3,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { calculateStreak, calculateConsistPoints, getTodayDate, isYesterday, getStreakMessage } from '@/lib/utils'
+import { getTargetProgress } from './actions/targets'
+import { checkAndCreateMilestones } from './actions/milestones'
+import { shouldPromptWeeklyCheckin } from './actions/weekly-checkin'
 
 export async function punchIn() {
   const supabase = await createServerClient()
@@ -147,11 +150,20 @@ export async function punchIn() {
                     .update({ score: (pusher.score || 0) + 2 })
                     .eq('id', pusherId)
                 
-                // Optional: We could add an activity here like "Your push worked!", 
-                // but simpler to just let them see the "Consisted after push" activity
+                // Optional: We could add an activity here like \"Your push worked!\", 
+                // but simpler to just let them see the \"Consisted after push\" activity
             }
         }
     }
+
+    // 11. NEW: Check for target progress
+    const targetProgress = await getTargetProgress()
+    
+    // 12. NEW: Check and create milestones
+    const milestonesResult = await checkAndCreateMilestones()
+    
+    // 13. NEW: Check if weekly check-in is due
+    const shouldCheckin = await shouldPromptWeeklyCheckin()
 
     revalidatePath('/dashboard')
     
@@ -159,7 +171,10 @@ export async function punchIn() {
       success: true, 
       streak: currentStreak, 
       points: points.total,
-      isNewRecord: points.isNewRecord
+      isNewRecord: points.isNewRecord,
+      targetProgress,
+      newMilestones: milestonesResult.milestones,
+      shouldWeeklyCheckin: shouldCheckin
     }
 
   } catch (error: any) {
@@ -167,6 +182,7 @@ export async function punchIn() {
     return { success: false, message: error.message || 'Failed to punch in' }
   }
 }
+
 /**
  * Send a push to another user
  */

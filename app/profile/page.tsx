@@ -6,16 +6,28 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
 import { formatRelativeTime } from '@/lib/utils'
+import { getBodyProfile } from '@/app/actions/body-profile'
+import { getTarget, getTargetProgress } from '@/app/actions/targets'
+import { BodyProfileForm } from '@/components/transformation/BodyProfileForm'
+import { TargetSetupForm } from '@/components/transformation/TargetSetupForm'
+import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
+import { TargetProgress } from '@/app/actions/targets'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
+type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
+type Target = Database['public']['Tables']['targets']['Row']
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user: authUser, loading: authLoading, signOut } = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [circle, setCircle] = useState<Circle | null>(null)
+  const [bodyProfile, setBodyProfile] = useState<BodyProfile | null>(null)
+  const [target, setTarget] = useState<Target | null>(null)
+  const [targetProgress, setTargetProgress] = useState<TargetProgress | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -45,6 +57,17 @@ export default function ProfilePage() {
             if (circleError) throw circleError
             setCircle(circleData)
         }
+
+        // Fetch transformation data
+        const [bodyProfileData, targetData, progressData] = await Promise.all([
+          getBodyProfile(),
+          getTarget(),
+          getTargetProgress()
+        ])
+
+        setBodyProfile(bodyProfileData)
+        setTarget(targetData)
+        setTargetProgress(progressData)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -93,7 +116,7 @@ export default function ProfilePage() {
             </div>
             <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">{user.name}</h2>
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">
-                Operative since {new Date(user.created_at).toLocaleDateString()}
+                Operative since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
             </p>
             
             {circle && (
@@ -121,6 +144,167 @@ export default function ProfilePage() {
                 <div className="text-4xl font-black text-white mb-1 italic tracking-tighter">{user.score || 0}</div>
                 <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Total Score</div>
             </div>
+        </div>
+
+        {/* Transformation Section */}
+        <div className="space-y-4 pt-6 border-t border-white/5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] px-2 italic">
+              Transformation
+            </h3>
+            <button
+              onClick={() => router.push('/tracking')}
+              className="text-primary text-xs font-black hover:text-primary/80 transition-colors"
+            >
+              TRACK →
+            </button>
+          </div>
+
+          {/* Weekly Check-in Modal */}
+          {showWeeklyCheckin && bodyProfile && (
+            <WeeklyCheckinModal
+              bodyProfile={bodyProfile}
+              onClose={() => setShowWeeklyCheckin(false)}
+              onSuccess={async () => {
+                // Refresh profile data
+                const updated = await getBodyProfile()
+                if (updated) {
+                  setBodyProfile(updated)
+                  // Refresh target progress if exists
+                  if (target) {
+                    const progressData = await getTargetProgress()
+                    setTargetProgress(progressData)
+                  }
+                }
+                router.refresh()
+              }}
+            />
+          )}
+
+          {bodyProfile ? (
+            <>
+              {/* Body Stats Card */}
+              <div className="glass-card border border-white/10 rounded-3xl p-5">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
+                      Current Stats
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowWeeklyCheckin(true)}
+                    className="text-xs font-black text-primary hover:text-primary/80 transition-colors"
+                  >
+                    UPDATE →
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-2xl font-black text-white">
+                      {bodyProfile.current_weight_kg.toFixed(1)}
+                      <span className="text-sm text-slate-500 ml-1">kg</span>
+                    </p>
+                    <p className="text-[10px] text-slate-600 font-bold uppercase">Weight</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-white">
+                      {bodyProfile.height_cm}
+                      <span className="text-sm text-slate-500 ml-1">cm</span>
+                    </p>
+                    <p className="text-[10px] text-slate-600 font-bold uppercase">Height</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Target Progress OR Target Setup */}
+              {target && targetProgress ? (
+                <div className="glass-card border border-white/10 rounded-3xl p-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
+                        Target Progress
+                      </p>
+                      <p className="text-xl font-black text-primary mt-1">
+                        {target.target_weight_kg.toFixed(1)}kg
+                      </p>
+                    </div>
+                    <div className="text-2xl">{targetProgress.is_on_track ? '🎯' : '⚡'}</div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.min(100, targetProgress.progress_percentage)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-sm font-black text-green-400">
+                        {targetProgress.kg_progress.toFixed(1)}
+                      </p>
+                      <p className="text-[10px] text-slate-600 font-bold">Lost</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white">
+                        {targetProgress.kg_remaining.toFixed(1)}
+                      </p>
+                      <p className="text-[10px] text-slate-600 font-bold">Left</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white">
+                        {targetProgress.days_remaining}
+                      </p>
+                      <p className="text-[10px] text-slate-600 font-bold">Days</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="glass-card border border-white/10 rounded-3xl p-5">
+                  <h3 className="text-sm font-black text-white mb-3 uppercase tracking-tight">
+                    Set Your Goal
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Set a target weight and date to track your progress
+                  </p>
+                  <TargetSetupForm
+                    bodyProfile={bodyProfile}
+                    onSuccess={async () => {
+                      const [targetData, progressData] = await Promise.all([
+                        getTarget(),
+                        getTargetProgress()
+                      ])
+                      setTarget(targetData)
+                      setTargetProgress(progressData)
+                      router.refresh()
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="glass-card border border-white/10 rounded-3xl p-6">
+              <div className="mb-4">
+                <h3 className="text-xl font-black text-white mb-2">
+                  Set Up Your Profile
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Enter your height, weight, and measurements to start tracking your transformation.
+                </p>
+              </div>
+              <BodyProfileForm
+                onSuccess={async () => {
+                  // Refresh the profile data
+                  const updated = await getBodyProfile()
+                  setBodyProfile(updated)
+                  router.refresh()
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Account Actions */}

@@ -147,6 +147,81 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
             </span>
           )
         }
+      case 'meal_logged':
+        return {
+          icon: '🍽️',
+          color: 'text-green-400',
+          bg: 'bg-green-500/5',
+          border: 'border-white/5',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> LOGGED A MEAL
+              {meta.calories && <span className="text-slate-500 font-bold ml-2 italic">{meta.calories} kcal</span>}
+            </span>
+          )
+        }
+      case 'workout_logged':
+        return {
+          icon: '💪',
+          color: 'text-blue-400',
+          bg: 'bg-blue-500/5',
+          border: 'border-white/5',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> LOGGED WORKOUT
+              {meta.workout_type && <span className="text-slate-500 font-bold ml-2 italic">{meta.workout_type}</span>}
+            </span>
+          )
+        }
+      case 'weight_milestone':
+        return {
+          icon: '🎯',
+          color: 'text-primary',
+          bg: 'bg-primary/10',
+          border: 'border-primary/20',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> HIT A <span className="text-primary font-black italic">WEIGHT MILESTONE</span>
+              {meta.description && <span className="text-slate-500 font-bold ml-2 block text-xs mt-1 normal-case">{meta.description}</span>}
+            </span>
+          )
+        }
+      case 'weekly_consistency':
+        return {
+          icon: '🔥',
+          color: 'text-orange-400',
+          bg: 'bg-orange-500/10',
+          border: 'border-orange-500/20',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> HIT <span className="text-orange-400 font-black italic">7-DAY STREAK</span>
+            </span>
+          )
+        }
+      case 'monthly_consistency':
+        return {
+          icon: '💎',
+          color: 'text-purple-400',
+          bg: 'bg-purple-500/10',
+          border: 'border-purple-500/20',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> HIT <span className="text-purple-400 font-black italic">30-DAY STREAK</span>
+            </span>
+          )
+        }
+      case 'target_achieved':
+        return {
+          icon: '🏆',
+          color: 'text-yellow-400',
+          bg: 'bg-yellow-500/10',
+          border: 'border-yellow-500/20',
+          text: (
+            <span className="uppercase tracking-tighter">
+              <span className="font-black text-white">{actorName}</span> <span className="text-yellow-400 font-black italic">ACHIEVED TARGET!</span>
+            </span>
+          )
+        }
       default:
         return {
           icon: '📝',
@@ -213,7 +288,7 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
                     {content.text}
                 </div>
                 <div className="text-[10px] text-slate-600 mt-2 font-black uppercase tracking-widest">
-                  {formatRelativeTime(activity.created_at)}
+                  {activity.created_at ? formatRelativeTime(activity.created_at) : 'Just now'}
                 </div>
               </div>
             </motion.div>
