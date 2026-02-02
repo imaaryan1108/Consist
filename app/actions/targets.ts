@@ -64,6 +64,10 @@ export async function setTarget(targetData: {
   target_weight_kg: number
   target_date: string
   custom_message?: string
+  target_calories_daily?: number
+  target_protein_g_daily?: number
+  target_carbs_g_daily?: number
+  target_fats_g_daily?: number
 }) {
   const supabase = await createServerClient()
   
@@ -95,6 +99,10 @@ export async function setTarget(targetData: {
         target_weight_kg: targetData.target_weight_kg,
         target_date: targetData.target_date,
         custom_message: targetData.custom_message,
+        target_calories_daily: targetData.target_calories_daily,
+        target_protein_g_daily: targetData.target_protein_g_daily,
+        target_carbs_g_daily: targetData.target_carbs_g_daily,
+        target_fats_g_daily: targetData.target_fats_g_daily,
         starting_weight_kg, // Update starting weight
         starting_date: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString()
@@ -115,7 +123,11 @@ export async function setTarget(targetData: {
         target_weight_kg: targetData.target_weight_kg,
         target_date: targetData.target_date,
         starting_weight_kg,
-        custom_message: targetData.custom_message
+        custom_message: targetData.custom_message,
+        target_calories_daily: targetData.target_calories_daily,
+        target_protein_g_daily: targetData.target_protein_g_daily,
+        target_carbs_g_daily: targetData.target_carbs_g_daily,
+        target_fats_g_daily: targetData.target_fats_g_daily
       }
       
       const { error: insertError } = await supabase

@@ -11,6 +11,8 @@ export interface DailySummary {
   date: string
   total_calories: number
   total_protein: number
+  total_carbs: number
+  total_fats: number
   total_water: number
   meal_count: number
   meals: MealLog[]
@@ -24,6 +26,8 @@ export async function logMeal(mealData: {
   food_name: string
   calories: number
   protein_g?: number
+  carbs_g?: number
+  fats_g?: number
   water_ml?: number
   date?: string
 }) {
@@ -45,6 +49,8 @@ export async function logMeal(mealData: {
       food_name: mealData.food_name,
       calories: mealData.calories,
       protein_g: mealData.protein_g,
+      carbs_g: mealData.carbs_g,
+      fats_g: mealData.fats_g,
       water_ml: mealData.water_ml
     }
     
@@ -102,12 +108,16 @@ export async function getDailySummary(date?: string): Promise<DailySummary> {
   
   const total_calories = meals.reduce((sum, meal) => sum + (meal.calories || 0), 0)
   const total_protein = meals.reduce((sum, meal) => sum + (meal.protein_g || 0), 0)
+  const total_carbs = meals.reduce((sum, meal) => sum + (meal.carbs_g || 0), 0)
+  const total_fats = meals.reduce((sum, meal) => sum + (meal.fats_g || 0), 0)
   const total_water = meals.reduce((sum, meal) => sum + (meal.water_ml || 0), 0)
   
   return {
     date: targetDate,
     total_calories,
     total_protein,
+    total_carbs,
+    total_fats,
     total_water,
     meal_count: meals.length,
     meals
@@ -152,6 +162,8 @@ export async function updateMeal(
     food_name?: string
     calories?: number
     protein_g?: number
+    carbs_g?: number
+    fats_g?: number
     water_ml?: number
   }
 ) {

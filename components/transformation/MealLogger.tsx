@@ -12,6 +12,8 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
   const [foodName, setFoodName] = useState('')
   const [calories, setCalories] = useState('')
   const [protein, setProtein] = useState('')
+  const [carbs, setCarbs] = useState('')
+  const [fats, setFats] = useState('')
   const [water, setWater] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -24,6 +26,8 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
       food_name: foodName,
       calories: Number(calories),
       protein_g: protein ? Number(protein) : undefined,
+      carbs_g: carbs ? Number(carbs) : undefined,
+      fats_g: fats ? Number(fats) : undefined,
       water_ml: water ? Number(water) : undefined
     })
 
@@ -34,6 +38,8 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
       setFoodName('')
       setCalories('')
       setProtein('')
+      setCarbs('')
+      setFats('')
       setWater('')
       onSuccess?.()
     }
@@ -92,28 +98,62 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
         <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">kcal</span>
       </div>
 
-      {/* Optional: Protein & Water */}
+      {/* Macros Grid 2x2 */}
       <div className="grid grid-cols-2 gap-3">
+        {/* Protein */}
         <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🥩</div>
           <input
             type="number"
             value={protein}
             onChange={(e) => setProtein(e.target.value)}
-            placeholder="Protein (optional)"
-            className="w-full glass-card border border-white/10 rounded-2xl px-4 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
+            placeholder="Protein"
+            className="w-full glass-card border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
             min="0"
             step="0.1"
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-xs">g</span>
         </div>
 
+        {/* Carbs */}
         <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🍚</div>
+          <input
+            type="number"
+            value={carbs}
+            onChange={(e) => setCarbs(e.target.value)}
+            placeholder="Carbs"
+            className="w-full glass-card border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
+            min="0"
+            step="0.1"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-xs">g</span>
+        </div>
+
+        {/* Fats */}
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🥑</div>
+          <input
+            type="number"
+            value={fats}
+            onChange={(e) => setFats(e.target.value)}
+            placeholder="Fats"
+            className="w-full glass-card border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
+            min="0"
+            step="0.1"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-xs">g</span>
+        </div>
+
+        {/* Water */}
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">💧</div>
           <input
             type="number"
             value={water}
             onChange={(e) => setWater(e.target.value)}
-            placeholder="Water (optional)"
-            className="w-full glass-card border border-white/10 rounded-2xl px-4 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
+            placeholder="Water"
+            className="w-full glass-card border border-white/10 rounded-2xl pl-12 pr-10 py-3 text-white font-bold placeholder:text-slate-600 placeholder:font-normal text-sm focus:outline-none focus:border-primary/50 transition-colors"
             min="0"
             step="50"
           />

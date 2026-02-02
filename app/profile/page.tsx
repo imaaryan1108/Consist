@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const [targetProgress, setTargetProgress] = useState<TargetProgress | null>(null)
   const [loading, setLoading] = useState(true)
   const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
+  const [editingTarget, setEditingTarget] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -217,7 +218,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Target Progress OR Target Setup */}
-              {target && targetProgress ? (
+              {target && targetProgress && !editingTarget ? (
                 <div className="glass-card border border-white/10 rounded-3xl p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -228,7 +229,12 @@ export default function ProfilePage() {
                         {target.target_weight_kg.toFixed(1)}kg
                       </p>
                     </div>
-                    <div className="text-2xl">{targetProgress.is_on_track ? '🎯' : '⚡'}</div>
+                    <button
+                      onClick={() => setEditingTarget(true)}
+                      className="text-xs font-black text-primary hover:text-primary/80 transition-colors"
+                    >
+                      EDIT →
+                    </button>
                   </div>
                   
                   {/* Progress Bar */}
@@ -264,14 +270,27 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="glass-card border border-white/10 rounded-3xl p-5">
-                  <h3 className="text-sm font-black text-white mb-3 uppercase tracking-tight">
-                    Set Your Goal
-                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-black text-white uppercase tracking-tight">
+                      {target ? 'Edit Your Goal' : 'Set Your Goal'}
+                    </h3>
+                    {target && editingTarget && (
+                      <button
+                        onClick={() => setEditingTarget(false)}
+                        className="text-xs font-black text-slate-500 hover:text-white transition-colors"
+                      >
+                        ✕ CANCEL
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 mb-4">
-                    Set a target weight and date to track your progress
+                    {target 
+                      ? 'Update your target weight, date, and daily macro goals' 
+                      : 'Set a target weight and date to track your progress'}
                   </p>
                   <TargetSetupForm
                     bodyProfile={bodyProfile}
+                    existingTarget={target}
                     onSuccess={async () => {
                       const [targetData, progressData] = await Promise.all([
                         getTarget(),
@@ -279,6 +298,7 @@ export default function ProfilePage() {
                       ])
                       setTarget(targetData)
                       setTargetProgress(progressData)
+                      setEditingTarget(false)
                       router.refresh()
                     }}
                   />

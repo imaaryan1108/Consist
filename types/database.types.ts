@@ -248,8 +248,10 @@ export type Database = {
       meal_logs: {
         Row: {
           calories: number
+          carbs_g: number | null
           created_at: string | null
           date: string
+          fats_g: number | null
           food_name: string
           id: string
           meal_type: string
@@ -259,8 +261,10 @@ export type Database = {
         }
         Insert: {
           calories: number
+          carbs_g?: number | null
           created_at?: string | null
           date: string
+          fats_g?: number | null
           food_name: string
           id?: string
           meal_type: string
@@ -270,8 +274,10 @@ export type Database = {
         }
         Update: {
           calories?: number
+          carbs_g?: number | null
           created_at?: string | null
           date?: string
+          fats_g?: number | null
           food_name?: string
           id?: string
           meal_type?: string
@@ -379,7 +385,11 @@ export type Database = {
           id: string
           starting_date: string
           starting_weight_kg: number
+          target_calories_daily: number | null
+          target_carbs_g_daily: number | null
           target_date: string
+          target_fats_g_daily: number | null
+          target_protein_g_daily: number | null
           target_weight_kg: number
           updated_at: string | null
           user_id: string
@@ -390,7 +400,11 @@ export type Database = {
           id?: string
           starting_date?: string
           starting_weight_kg: number
+          target_calories_daily?: number | null
+          target_carbs_g_daily?: number | null
           target_date: string
+          target_fats_g_daily?: number | null
+          target_protein_g_daily?: number | null
           target_weight_kg: number
           updated_at?: string | null
           user_id: string
@@ -401,7 +415,11 @@ export type Database = {
           id?: string
           starting_date?: string
           starting_weight_kg?: number
+          target_calories_daily?: number | null
+          target_carbs_g_daily?: number | null
           target_date?: string
+          target_fats_g_daily?: number | null
+          target_protein_g_daily?: number | null
           target_weight_kg?: number
           updated_at?: string | null
           user_id?: string

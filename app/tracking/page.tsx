@@ -1,7 +1,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getMealsForDate, getDailySummary } from '@/app/actions/meals'
 import { getWorkoutForDate } from '@/app/actions/workouts'
+import { getTarget } from '@/app/actions/targets'
 import { MealLogger } from '@/components/transformation/MealLogger'
+import { MacroProgress } from '@/components/transformation/MacroProgress'
 import { DetailedExerciseLogger } from '@/components/transformation/DetailedExerciseLogger'
 import { WorkoutHistory } from '@/components/transformation/WorkoutHistory'
 import { redirect } from 'next/navigation'
@@ -18,6 +20,7 @@ export default async function TrackingPage() {
   // Get today's data
   const dailySummary = await getDailySummary()
   const todayWorkout = await getWorkoutForDate()
+  const target = await getTarget()
 
   return (
     <main className="min-h-screen bg-charcoal p-4 pb-20 relative overflow-hidden">
@@ -46,45 +49,27 @@ export default async function TrackingPage() {
           </div>
         </div>
 
-        {/* Daily Summary Card */}
+        {/* Macro Progress Tracker */}
         <div className="glass-card border border-white/10 rounded-[2rem] p-6 mb-6">
-          <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
-            Today's Summary
-          </h2>
+          <MacroProgress
+            current={{
+              calories: dailySummary.total_calories,
+              protein: dailySummary.total_protein,
+              carbs: dailySummary.total_carbs,
+              fats: dailySummary.total_fats
+            }}
+            targets={{
+              calories: target?.target_calories_daily,
+              protein: target?.target_protein_g_daily,
+              carbs: target?.target_carbs_g_daily,
+              fats: target?.target_fats_g_daily
+            }}
+          />
           
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-black text-primary mb-1">
-                {dailySummary.total_calories}
-              </div>
-              <div className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
-                Calories
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-3xl font-black text-green-400 mb-1">
-                {dailySummary.total_protein.toFixed(0)}g
-              </div>
-              <div className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
-                Protein
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-3xl font-black text-blue-400 mb-1">
-                {(dailySummary.total_water / 1000).toFixed(1)}L
-              </div>
-              <div className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
-                Water
-              </div>
-            </div>
-          </div>
-
           {dailySummary.meal_count > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
               <div className="text-xs text-slate-500 font-bold">
-                {dailySummary.meal_count} meal{dailySummary.meal_count !== 1 ? 's' : ''} logged today
+                {dailySummary.meal_count} meal{dailySummary.meal_count !== 1 ? 's' : ''} logged • {(dailySummary.total_water / 1000).toFixed(1)}L water
               </div>
             </div>
           )}
@@ -132,11 +117,28 @@ export default async function TrackingPage() {
                       <div className="text-[10px] text-slate-500 font-bold">kcal</div>
                     </div>
                   </div>
-                  {meal.protein_g && (
-                    <div className="text-xs text-slate-500">
-                      Protein: {meal.protein_g}g
-                    </div>
-                  )}
+                  <div className="flex gap-3 flex-wrap text-xs">
+                    {meal.protein_g && (
+                      <div className="text-slate-500">
+                        <span className="mr-1">🥩</span>{meal.protein_g}g protein
+                      </div>
+                    )}
+                    {meal.carbs_g && (
+                      <div className="text-slate-500">
+                        <span className="mr-1">🍚</span>{meal.carbs_g}g carbs
+                      </div>
+                    )}
+                    {meal.fats_g && (
+                      <div className="text-slate-500">
+                        <span className="mr-1">🥑</span>{meal.fats_g}g fats
+                      </div>
+                    )}
+                    {meal.water_ml && (
+                      <div className="text-slate-500">
+                        <span className="mr-1">💧</span>{meal.water_ml}ml
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
