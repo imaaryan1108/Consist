@@ -12,9 +12,13 @@ import { MilestoneToast } from '@/components/transformation/MilestoneToast'
 import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
 import { getBodyProfile } from '@/app/actions/body-profile'
 import { getTarget, getTargetProgress } from '@/app/actions/targets'
+import { getDailySummary } from '@/app/actions/meals'
+import { getWeeklySummary } from '@/app/actions/history'
 import { MotivationalQuoteCard } from '@/components/motivation/MotivationalQuoteCard'
 import { TargetWeightHero } from '@/components/motivation/TargetWeightHero'
 import { StreakCelebration } from '@/components/motivation/StreakCelebration'
+import { GoalsProgressCard } from '@/components/dashboard/GoalsProgressCard'
+import { HistoryTrendsCard } from '@/components/dashboard/HistoryTrendsCard'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -35,6 +39,8 @@ export default function DashboardPage() {
   // Transformation feature states
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
+  const [dailySummary, setDailySummary] = useState<any>(null)
+  const [weeklySummary, setWeeklySummary] = useState<any>(null)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -83,6 +89,14 @@ export default function DashboardPage() {
           const progressData = await getTargetProgress()
           setTargetProgress(progressData)
         }
+        
+        // Fetch today's summary for Goals card
+        const dailyData = await getDailySummary()
+        setDailySummary(dailyData)
+        
+        // Fetch this week's summary for History card
+        const weeklyData = await getWeeklySummary()
+        setWeeklySummary(weeklyData)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -176,17 +190,7 @@ export default function DashboardPage() {
         {/* Motivational Quote */}
         <MotivationalQuoteCard />
 
-        {/* Target Weight Hero (if target exists) */}
-        {target && bodyProfile && targetProgress && (
-          <TargetWeightHero
-            currentWeight={bodyProfile.current_weight_kg}
-            targetWeight={target.target_weight_kg}
-            targetDate={target.target_date}
-            weightLost={targetProgress.weight_lost_kg}
-          />
-        )}
-
-        {/* Streak Celebration */}
+           {/* Streak Celebration */}
         {(user.current_streak ?? 0) > 0 && (
           <StreakCelebration
             streak={user.current_streak ?? 0}
@@ -209,6 +213,58 @@ export default function DashboardPage() {
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Points</div>
           </div>
         </div>
+
+        {/* Goals & Progress Card */}
+        {dailySummary && (
+          <GoalsProgressCard
+            current={{
+              calories: dailySummary.total_calories,
+              protein: dailySummary.total_protein,
+              carbs: dailySummary.total_carbs,
+              fats: dailySummary.total_fats
+            }}
+            targets={{
+              calories: target?.target_calories_daily,
+              protein: target?.target_protein_g_daily,
+              carbs: target?.target_carbs_g_daily,
+              fats: target?.target_fats_g_daily
+            }}
+            targetWeight={
+              target && bodyProfile && targetProgress
+                ? {
+                    current: bodyProfile.current_weight_kg,
+                    target: target.target_weight_kg,
+                    progress: targetProgress.progress_percentage
+                  }
+                : null
+            }
+          />
+        )}
+
+        {/* History & Trends Card */}
+        {weeklySummary && (
+          <HistoryTrendsCard
+            weekSummary={{
+              daysTracked: weeklySummary.daysTracked,
+              totalCalories: weeklySummary.totalCalories,
+              avgCalories: weeklySummary.avgCalories,
+              totalProtein: weeklySummary.totalProtein,
+              workoutsCompleted: weeklySummary.workoutsCompleted
+            }}
+          />
+        )}
+
+        {/* Target Weight Hero (if target exists) */}
+        {target && bodyProfile && targetProgress && (
+          <TargetWeightHero
+            currentWeight={bodyProfile.current_weight_kg}
+            targetWeight={target.target_weight_kg}
+            targetDate={target.target_date}
+            weightLost={targetProgress.weight_lost_kg}
+          />
+        )}
+
+     
 
         {/* Circle Members List */}
         <section>

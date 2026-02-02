@@ -89,7 +89,7 @@ export function TargetSetupForm({ bodyProfile, existingTarget, onSuccess }: Targ
           onChange={(e) => setTargetDate(e.target.value)}
           min={minDate}
           required
-          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white font-bold focus:outline-none focus:border-primary/50 transition-colors"
+          className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-3 text-white font-bold focus:outline-none focus:border-primary/50 transition-colors"
         />
       </div>
 

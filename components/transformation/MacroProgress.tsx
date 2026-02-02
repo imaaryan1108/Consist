@@ -123,7 +123,7 @@ export function MacroProgress({ current, targets }: MacroProgressProps) {
     <div className="space-y-3">
       <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Today's Progress</h3>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <MacroProgressItem
           icon="🔥"
           label="kCal"
