@@ -12,6 +12,7 @@ import { BodyProfileForm } from '@/components/transformation/BodyProfileForm'
 import { TargetSetupForm } from '@/components/transformation/TargetSetupForm'
 import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
 import { TargetProgress } from '@/app/actions/targets'
+import { LoadingState } from '@/components/ui/LoadingState'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -79,12 +80,71 @@ export default function ProfilePage() {
     fetchUserData()
   }, [authUser])
 
+  // Real-time subscription for body profiles
+  useEffect(() => {
+    if (!authUser) return
+
+    const profilesChannel = supabase
+      .channel('profile_body_profiles')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'body_profiles',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        async () => {
+          console.log('Body profile change detected, refreshing...')
+          const updated = await getBodyProfile()
+          setBodyProfile(updated)
+          
+          if (target) {
+            const progressData = await getTargetProgress()
+            setTargetProgress(progressData)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(profilesChannel)
+    }
+  }, [authUser, target])
+
+  // Real-time subscription for targets
+  useEffect(() => {
+    if (!authUser) return
+
+    const targetsChannel = supabase
+      .channel('profile_targets')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'targets',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        async () => {
+          console.log('Target change detected, refreshing...')
+          const [targetData, progressData] = await Promise.all([
+            getTarget(),
+            getTargetProgress()
+          ])
+          setTarget(targetData)
+          setTargetProgress(progressData)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(targetsChannel)
+    }
+  }, [authUser])
+
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    )
+    return <LoadingState variant="full" />
   }
 
   if (!user) return null

@@ -1,26 +1,119 @@
-import { createServerClient } from '@/lib/supabase/server'
-import { getMealsForDate, getDailySummary } from '@/app/actions/meals'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth/AuthProvider'
+import { supabase } from '@/lib/supabase/client'
+import { getDailySummary } from '@/app/actions/meals'
 import { getWorkoutForDate } from '@/app/actions/workouts'
 import { getTarget } from '@/app/actions/targets'
 import { MealLogger } from '@/components/transformation/MealLogger'
 import { MacroProgress } from '@/components/transformation/MacroProgress'
 import { DetailedExerciseLogger } from '@/components/transformation/DetailedExerciseLogger'
 import { WorkoutHistory } from '@/components/transformation/WorkoutHistory'
-import { redirect } from 'next/navigation'
+import { LoadingState } from '@/components/ui/LoadingState'
 import Link from 'next/link'
 
-export default async function TrackingPage() {
-  const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  if (!session) {
-    redirect('/')
+export default function TrackingPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [dailySummary, setDailySummary] = useState<any>(null)
+  const [target, setTarget] = useState<any>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Fetch initial data
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        const [summaryData, targetData] = await Promise.all([
+          getDailySummary(),
+          getTarget()
+        ])
+        
+        setDailySummary(summaryData)
+        setTarget(targetData)
+      } catch (error) {
+        console.error('Error fetching tracking data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [user])
+
+  // Real-time subscription for meals
+  useEffect(() => {
+    if (!user) return
+
+    const mealsChannel = supabase
+      .channel('tracking_meals')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meals',
+          filter: `user_id=eq.${user.id}`
+        },
+        async () => {
+          console.log('Meal change detected, refreshing data...')
+          const updated = await getDailySummary()
+          setDailySummary(updated)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(mealsChannel)
+    }
+  }, [user])
+
+  // Real-time subscription for workouts
+  useEffect(() => {
+    if (!user) return
+
+    const workoutsChannel = supabase
+      .channel('tracking_workouts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workouts',
+          filter: `user_id=eq.${user.id}`
+        },
+        async () => {
+          console.log('Workout change detected, refreshing...')
+          // Trigger refresh of workout history component
+          setRefreshKey(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(workoutsChannel)
+    }
+  }, [user])
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/')
+    }
+  }, [authLoading, user, router])
+
+  if (authLoading || loading) {
+    return <LoadingState variant="full" />
   }
 
-  // Get today's data
-  const dailySummary = await getDailySummary()
-  const todayWorkout = await getWorkoutForDate()
-  const target = await getTarget()
+  if (!user || !dailySummary) {
+    return null
+  }
 
   return (
     <main className="min-h-screen bg-charcoal p-4 pb-20 relative overflow-hidden">
@@ -80,7 +173,13 @@ export default async function TrackingPage() {
           <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
             Log Meal
           </h2>
-          <MealLogger />
+          <MealLogger 
+            onSuccess={async () => {
+              // Real-time subscription will handle the update
+              // but we can show immediate feedback if needed
+              console.log('Meal logged successfully!')
+            }}
+          />
         </div>
 
         {/* Workout Logging */}
@@ -93,12 +192,12 @@ export default async function TrackingPage() {
 
         {/* Meals List */}
         {dailySummary.meals.length > 0 && (
-          <div className="glass-card border border-white/10 rounded-[2rem] p-6">
+          <div className="glass-card border border-white/10 rounded-[2rem] p-6 mb-6">
             <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
               Today's Meals
             </h2>
             <div className="space-y-3">
-              {dailySummary.meals.map((meal) => (
+              {dailySummary.meals.map((meal: any) => (
                 <div
                   key={meal.id}
                   className="bg-white/5 border border-white/10 rounded-2xl p-4"
@@ -145,8 +244,8 @@ export default async function TrackingPage() {
           </div>
         )}
 
-        {/* Workout History */}
-        <WorkoutHistory limit={7} />
+        {/* Today's Workouts */}
+        <WorkoutHistory key={refreshKey} todayOnly={true} />
       </div>
     </main>
   )

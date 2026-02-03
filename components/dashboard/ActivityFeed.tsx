@@ -6,6 +6,8 @@ import { Database } from '@/types/database.types'
 import { formatRelativeTime } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
+import { LoadingState } from '@/components/ui/LoadingState'
+
 type Activity = Database['public']['Tables']['activities']['Row'] & {
   actor?: Database['public']['Tables']['users']['Row']
   target?: Database['public']['Tables']['users']['Row']
@@ -234,12 +236,7 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
   }
 
   if (loading) {
-    return (
-        <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-600">Syncing Activity</p>
-        </div>
-    )
+    return <LoadingState variant="inline" />
   }
 
   if (activities.length === 0) {

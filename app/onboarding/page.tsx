@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase/client'
 import { createCircle, joinCircle, generateCircleCode } from '@/lib/supabase/helpers'
+import { LoadingState } from '@/components/ui/LoadingState'
 
 type Step = 'name' | 'circle-choice' | 'circle-action'
 type CircleChoice = 'create' | 'join'
@@ -143,11 +144,7 @@ export default function OnboardingPage() {
   }
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
-        <div className="text-white">Loading...</div>
-      </div>
-    )
+    return <LoadingState variant="full" />
   }
 
   return (

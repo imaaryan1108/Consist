@@ -6,6 +6,8 @@ import { Database } from '@/types/database.types'
 import { isToday } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
+import { LoadingState } from '@/components/ui/LoadingState'
+
 type User = Database['public']['Tables']['users']['Row']
 
 interface CircleMembersProps {
@@ -113,13 +115,7 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
   })
 
   if (loading) {
-     return (
-        <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-slate-900/50 rounded-2xl animate-pulse" />
-            ))}
-        </div>
-    )
+     return <LoadingState variant="minimal" />
   }
 
   return (

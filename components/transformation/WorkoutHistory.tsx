@@ -20,7 +20,7 @@ interface WorkoutWithExercises {
   exercises: Exercise[]
 }
 
-export function WorkoutHistory({ limit = 7 }: { limit?: number }) {
+export function WorkoutHistory({ limit = 7, todayOnly = false }: { limit?: number; todayOnly?: boolean }) {
   const [workouts, setWorkouts] = useState<WorkoutWithExercises[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,7 +31,19 @@ export function WorkoutHistory({ limit = 7 }: { limit?: number }) {
   const loadWorkouts = async () => {
     setLoading(true)
     const history = await getWorkoutHistory(limit)
-    setWorkouts(history as any)
+    
+    let filteredWorkouts = history as any
+    
+    // Filter for today only if todayOnly prop is true
+    if (todayOnly) {
+      const today = new Date().toISOString().split('T')[0]
+      filteredWorkouts = filteredWorkouts.filter((workout: any) => {
+        const workoutDate = new Date(workout.date).toISOString().split('T')[0]
+        return workoutDate === today
+      })
+    }
+    
+    setWorkouts(filteredWorkouts)
     setLoading(false)
   }
 
@@ -56,7 +68,7 @@ export function WorkoutHistory({ limit = 7 }: { limit?: number }) {
   return (
     <div className="glass-card border border-white/10 rounded-[2rem] p-6 mt-6">
       <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
-        Workout History
+        {todayOnly ? "Today's Workouts" : "Workout History"}
       </h2>
       
       <div className="space-y-3">

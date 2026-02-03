@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { supabase } from '@/lib/supabase/client'
 import { getWeeklySummary, getDailyLogsForWeek } from '@/app/actions/history'
 import { getWeekDatesWithOffset } from '@/lib/utils/date'
 import { WeekSelector } from '@/components/history/WeekSelector'
 import { WeeklySummaryCard } from '@/components/history/WeeklySummaryCard'
 import { DailyHistoryCard } from '@/components/history/DailyHistoryCard'
+import { LoadingState } from '@/components/ui/LoadingState'
 
 export default function HistoryPage() {
   const router = useRouter()
@@ -49,6 +51,57 @@ export default function HistoryPage() {
     fetchData()
   }, [weekOffset, user])
 
+  // Real-time subscription for meals and workouts
+  useEffect(() => {
+    if (!user) return
+
+    const historyChannel = supabase
+      .channel('history_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meals',
+          filter: `user_id=eq.${user.id}`
+        },
+        async () => {
+          console.log('Meal change detected in history, refreshing week data...')
+          const dates = getWeekDatesWithOffset(weekOffset)
+          const [summary, logs] = await Promise.all([
+            getWeeklySummary(dates.startDate, dates.endDate),
+            getDailyLogsForWeek(dates.startDate, dates.endDate)
+          ])
+          setWeeklySummary(summary)
+          setDailyLogs(logs)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workouts',
+          filter: `user_id=eq.${user.id}`
+        },
+        async () => {
+          console.log('Workout change detected in history, refreshing week data...')
+          const dates = getWeekDatesWithOffset(weekOffset)
+          const [summary, logs] = await Promise.all([
+            getWeeklySummary(dates.startDate, dates.endDate),
+            getDailyLogsForWeek(dates.startDate, dates.endDate)
+          ])
+          setWeeklySummary(summary)
+          setDailyLogs(logs)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(historyChannel)
+    }
+  }, [user, weekOffset])
+
   const handleWeekChange = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
       setWeekOffset(prev => prev - 1)
@@ -58,11 +111,7 @@ export default function HistoryPage() {
   }
 
   if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-charcoal">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    )
+    return <LoadingState variant="full" />
   }
 
   return (
@@ -95,9 +144,7 @@ export default function HistoryPage() {
         />
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="text-slate-500 text-sm">Loading...</div>
-          </div>
+          <LoadingState variant="inline" />
         ) : (
           <>
             {/* Weekly Summary */}

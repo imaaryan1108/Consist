@@ -26,6 +26,8 @@ type Milestone = Database['public']['Tables']['milestones']['Row']
 type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
 type Target = Database['public']['Tables']['targets']['Row']
 
+import { LoadingState } from '@/components/ui/LoadingState'
+
 export default function DashboardPage() {
   const router = useRouter()
   const { user: authUser, loading: authLoading, signOut } = useAuth()
@@ -107,12 +109,98 @@ export default function DashboardPage() {
     fetchUserData()
   }, [authUser, router])
 
+  // Real-time subscription for meals - update daily summary
+  useEffect(() => {
+    if (!authUser) return
+
+    const mealsChannel = supabase
+      .channel('dashboard_meals')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meals',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        async () => {
+          console.log('Meal change detected on dashboard, refreshing...')
+          const [dailyData, weeklyData] = await Promise.all([
+            getDailySummary(),
+            getWeeklySummary()
+          ])
+          setDailySummary(dailyData)
+          setWeeklySummary(weeklyData)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(mealsChannel)
+    }
+  }, [authUser])
+
+  // Real-time subscription for workouts - update weekly summary
+  useEffect(() => {
+    if (!authUser) return
+
+    const workoutsChannel = supabase
+      .channel('dashboard_workouts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workouts',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        async () => {
+          console.log('Workout change detected on dashboard, refreshing...')
+          const weeklyData = await getWeeklySummary()
+          setWeeklySummary(weeklyData)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(workoutsChannel)
+    }
+  }, [authUser])
+
+  // Real-time subscription for body profiles - update profile and target progress
+  useEffect(() => {
+    if (!authUser) return
+
+    const profilesChannel = supabase
+      .channel('dashboard_profiles')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'body_profiles',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        async () => {
+          console.log('Body profile change detected, refreshing...')
+          const profileData = await getBodyProfile()
+          setBodyProfile(profileData)
+          
+          if (target) {
+            const progressData = await getTargetProgress()
+            setTargetProgress(progressData)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(profilesChannel)
+    }
+  }, [authUser, target])
+
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    )
+    return <LoadingState variant="full" />
   }
 
   if (!user || !circle) {
