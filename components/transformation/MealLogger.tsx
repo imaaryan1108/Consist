@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { logMeal } from '@/app/actions/meals'
+import { analyzeNutrition } from '@/app/actions/nutrition'
 
 interface MealLoggerProps {
   onSuccess?: () => void
@@ -16,6 +17,54 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
   const [fats, setFats] = useState('')
   const [water, setWater] = useState('')
   const [loading, setLoading] = useState(false)
+  const [analyzingAI, setAnalyzingAI] = useState(false)
+  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  const handleAIAnalysis = async () => {
+    if (!foodName.trim()) {
+      setAiMessage({ type: 'error', text: 'Please enter a food name first' })
+      setTimeout(() => setAiMessage(null), 3000)
+      return
+    }
+
+    setAnalyzingAI(true)
+    setAiMessage(null)
+
+    try {
+      const result = await analyzeNutrition(foodName)
+      
+      if (result.success && result.data) {
+        // Auto-fill the form with AI data
+        setCalories(result.data.calories.toString())
+        setProtein(result.data.protein_g.toFixed(1))
+        setCarbs(result.data.carbs_g.toFixed(1))
+        setFats(result.data.fats_g.toFixed(1))
+        
+        // Show success message with serving size info
+        const servingInfo = result.data.serving_size ? ` (${result.data.serving_size})` : ''
+        setAiMessage({ 
+          type: 'success', 
+          text: `✨ Nutrition data filled${servingInfo}` 
+        })
+        setTimeout(() => setAiMessage(null), 5000)
+      } else {
+        setAiMessage({ 
+          type: 'error', 
+          text: result.message || 'Could not analyze food. Please enter values manually.' 
+        })
+        setTimeout(() => setAiMessage(null), 5000)
+      }
+    } catch (error) {
+      console.error('AI analysis error:', error)
+      setAiMessage({ 
+        type: 'error', 
+        text: 'AI analysis failed. Please enter values manually.' 
+      })
+      setTimeout(() => setAiMessage(null), 5000)
+    } finally {
+      setAnalyzingAI(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,15 +122,51 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
         ))}
       </div>
 
-      {/* Food Name */}
-      <input
-        type="text"
-        value={foodName}
-        onChange={(e) => setFoodName(e.target.value)}
-        placeholder="What did you eat?"
-        className="w-full glass-card border border-white/10 rounded-2xl px-5 py-4 text-white font-bold placeholder:text-slate-600 placeholder:font-normal focus:outline-none focus:border-primary/50 transition-colors"
-        required
-      />
+      {/* Food Name with AI Assist */}
+      <div className="space-y-2">
+        <div className="relative">
+          <input
+            type="text"
+            value={foodName}
+            onChange={(e) => setFoodName(e.target.value)}
+            placeholder="What did you eat?"
+            className="w-full glass-card border border-white/10 rounded-2xl px-5 py-4 text-white font-bold placeholder:text-slate-600 placeholder:font-normal focus:outline-none focus:border-primary/50 transition-colors"
+            required
+          />
+          <button
+            type="button"
+            onClick={handleAIAnalysis}
+            disabled={analyzingAI || !foodName.trim()}
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/20 to-violet-500/20 border border-primary/30 hover:border-primary/50 text-primary font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+          >
+            {analyzingAI ? (
+              <>
+                <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <span>Analyzing...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-base">✨</span>
+                <span>AI Assist</span>
+              </>
+            )}
+          </button>
+        </div>
+        
+        {/* AI Feedback Message */}
+        {aiMessage && (
+          <div 
+            className={`px-4 py-2 rounded-xl text-xs font-bold animate-in fade-in slide-in-from-top-2 duration-300 ${
+              aiMessage.type === 'success' 
+                ? 'bg-primary/10 border border-primary/30 text-primary' 
+                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+            }`}
+          >
+            {aiMessage.text}
+          </div>
+        )}
+      </div>
+
 
       {/* Calories (required) */}
       <div className="relative">
