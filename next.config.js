@@ -3,6 +3,7 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  customWorkerDir: 'worker',
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/,
@@ -33,7 +34,6 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  turbopack: {}, // Allow webpack config from next-pwa
 }
 
 module.exports = withPWA(nextConfig)

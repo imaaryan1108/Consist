@@ -124,20 +124,20 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
 
       {/* Food Name with AI Assist */}
       <div className="space-y-2">
-        <div className="relative">
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={foodName}
             onChange={(e) => setFoodName(e.target.value)}
             placeholder="What did you eat?"
-            className="w-full glass-card border border-white/10 rounded-2xl px-5 py-4 text-white font-bold placeholder:text-slate-600 placeholder:font-normal focus:outline-none focus:border-primary/50 transition-colors"
+            className="flex-1 min-w-0 glass-card border border-white/10 rounded-2xl px-5 py-4 text-white font-bold placeholder:text-slate-600 placeholder:font-normal focus:outline-none focus:border-primary/50 transition-colors"
             required
           />
           <button
             type="button"
             onClick={handleAIAnalysis}
             disabled={analyzingAI || !foodName.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/20 to-violet-500/20 border border-primary/30 hover:border-primary/50 text-primary font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="flex-shrink-0 px-4 py-4 rounded-2xl bg-gradient-to-r from-primary/20 to-violet-500/20 border border-primary/30 hover:border-primary/50 text-primary font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
           >
             {analyzingAI ? (
               <>

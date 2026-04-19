@@ -6,6 +6,7 @@ import { calculateStreak, calculateConsistPoints, getTodayDate, isYesterday, get
 import { getTargetProgress } from './actions/targets'
 import { checkAndCreateMilestones } from './actions/milestones'
 import { shouldPromptWeeklyCheckin } from './actions/weekly-checkin'
+import { notifyCircleMembers, notifyUser } from '@/lib/utils/push-server'
 
 export async function punchIn() {
   const supabase = await createServerClient()
@@ -165,6 +166,18 @@ export async function punchIn() {
     // 13. NEW: Check if weekly check-in is due
     const shouldCheckin = await shouldPromptWeeklyCheckin()
 
+    // 14. Notify circle members
+    const streakText = currentStreak > 1 ? ` (${currentStreak} day streak 🔥)` : ''
+    await notifyCircleMembers({
+      circleId: user.circle_id,
+      excludeUserId: userId,
+      title: 'Consist 💪',
+      body: wasPushed
+        ? `${user.name} answered the call${streakText}. Pushed and delivered.`
+        : `${user.name} just punched in${streakText}. The circle is moving — you still in bed?`,
+      url: '/dashboard',
+    })
+
     revalidatePath('/dashboard')
     
     return { 
@@ -248,10 +261,10 @@ export async function pushMember(targetUserId: string) {
 
     if (pushError) throw pushError
 
-    // 5. Create Activity
-    // Fetch user details for the activity feed (need names)
+    // 5. Create Activity + notify
     const { data: sender } = await supabase.from('users').select('name, circle_id').eq('id', userId).single()
-    
+    const { data: target } = await supabase.from('users').select('name').eq('id', targetUserId).single()
+
     if (sender && sender.circle_id) {
         await supabase
           .from('activities')
@@ -262,8 +275,26 @@ export async function pushMember(targetUserId: string) {
             type: 'push_sent',
             metadata: {}
           })
+
+        // Notify the person being pushed directly
+        await notifyUser({
+          userId: targetUserId,
+          title: 'You got pushed 👊',
+          body: `${sender.name} is calling you out. Show up or get left behind.`,
+          url: '/dashboard',
+        })
+
+        // Notify the rest of the circle (excluding sender and target who already got a direct notification)
+        await notifyCircleMembers({
+          circleId: sender.circle_id,
+          excludeUserId: userId,
+          excludeUserIds: [targetUserId],
+          title: 'Circle drama 👀',
+          body: `${sender.name} just pushed ${target?.name || 'someone'}. Challenge accepted?`,
+          url: '/dashboard',
+        })
     }
-    
+
     revalidatePath('/dashboard')
     
     return { success: true, remainingPushes: 2 - (pushCount || 0) }

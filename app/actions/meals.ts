@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { Database } from '@/types/database.types'
 import { getTodayDate } from '@/lib/utils'
+import { notifyCircleMembers } from '@/lib/utils/push-server'
 
 type MealLog = Database['public']['Tables']['meal_logs']['Row']
 type MealLogInsert = Database['public']['Tables']['meal_logs']['Insert']
@@ -57,9 +58,41 @@ export async function logMeal(mealData: {
     const { error: insertError } = await supabase
       .from('meal_logs')
       .insert(insert)
-    
+
     if (insertError) throw insertError
-    
+
+    // Notify circle members with FOMO-inducing message
+    const { data: user } = await supabase
+      .from('users')
+      .select('name, circle_id')
+      .eq('id', userId)
+      .single()
+
+    if (user?.circle_id) {
+      const mealLabels: Record<string, string> = {
+        breakfast: 'breakfast 🍳',
+        lunch: 'lunch 🥗',
+        dinner: 'dinner 🍽️',
+        snack: 'a snack 🍎',
+      }
+      const mealLabel = mealLabels[mealData.meal_type] || mealData.meal_type
+
+      const fomoMessages: Record<string, string> = {
+        breakfast: `${user.name} logged breakfast. FOMO loading... log yours before they lap you.`,
+        lunch: `${user.name} is tracking lunch. Your macros are watching.`,
+        dinner: `${user.name} closed out their day strong. Have you?`,
+        snack: `${user.name} logged a snack. Every calorie counts — are you counting?`,
+      }
+
+      await notifyCircleMembers({
+        circleId: user.circle_id,
+        excludeUserId: userId,
+        title: `${user.name} logged ${mealLabel}`,
+        body: fomoMessages[mealData.meal_type] || `${user.name} logged ${mealLabel}. Keep up.`,
+        url: '/tracking',
+      })
+    }
+
     return { success: true, message: 'Meal logged successfully' }
   } catch (error: any) {
     console.error('Error logging meal:', error)

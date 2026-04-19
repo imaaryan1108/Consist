@@ -19,6 +19,7 @@ import { TargetWeightHero } from '@/components/motivation/TargetWeightHero'
 import { StreakCelebration } from '@/components/motivation/StreakCelebration'
 import { GoalsProgressCard } from '@/components/dashboard/GoalsProgressCard'
 import { HistoryTrendsCard } from '@/components/dashboard/HistoryTrendsCard'
+import { NotificationPermission } from '@/components/dashboard/NotificationPermission'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -27,6 +28,7 @@ type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
 type Target = Database['public']['Tables']['targets']['Row']
 
 import { LoadingState } from '@/components/ui/LoadingState'
+import { getTodayDate, getDisplayStreak } from '@/lib/utils'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -211,9 +213,9 @@ export default function DashboardPage() {
     return null
   }
 
-  // Check if consisted today (client-side calculation for now, could be passed from server)
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDate()
   const hasConsisted = user.last_consist_date === today
+  const displayStreak = getDisplayStreak(user.current_streak ?? 0, user.last_consist_date)
 
   return (
     <main className="min-h-screen bg-charcoal p-4 pb-20 relative overflow-hidden">
@@ -239,6 +241,9 @@ export default function DashboardPage() {
           </button>
         </header>
 
+        {/* Push Notification Permission Banner */}
+        <NotificationPermission />
+
         {/* Milestone Toast */}
         {milestones.length > 0 && (
           <MilestoneToast
@@ -253,7 +258,13 @@ export default function DashboardPage() {
         {showWeeklyCheckin && bodyProfile && (
           <WeeklyCheckinModal
             bodyProfile={bodyProfile}
-            onClose={() => setShowWeeklyCheckin(false)}
+            onClose={() => {
+              // Remember dismissal for this Sunday so it doesn't re-prompt on next punch-in
+              const today = new Date()
+              const key = `checkin_dismissed_${today.getFullYear()}_${today.getMonth()}_${today.getDate()}`
+              localStorage.setItem(key, '1')
+              setShowWeeklyCheckin(false)
+            }}
             onSuccess={() => {
               router.refresh()
               const fetchProfile = async () => {
@@ -267,11 +278,17 @@ export default function DashboardPage() {
 
         {/* Consist Button Section */}
         <section className="neon-glow rounded-[2.5rem]">
-          <ConsistButton 
-            hasConsisted={hasConsisted} 
-            currentStreak={user.current_streak || 0}
+          <ConsistButton
+            hasConsisted={hasConsisted}
+            currentStreak={displayStreak}
             onMilestones={(newMilestones) => setMilestones(newMilestones)}
-            onWeeklyCheckinPrompt={() => setShowWeeklyCheckin(true)}
+            onWeeklyCheckinPrompt={() => {
+              const today = new Date()
+              const key = `checkin_dismissed_${today.getFullYear()}_${today.getMonth()}_${today.getDate()}`
+              if (!localStorage.getItem(key)) {
+                setShowWeeklyCheckin(true)
+              }
+            }}
           />
         </section>
 
@@ -279,17 +296,17 @@ export default function DashboardPage() {
         <MotivationalQuoteCard />
 
            {/* Streak Celebration */}
-        {(user.current_streak ?? 0) > 0 && (
+        {displayStreak > 0 && (
           <StreakCelebration
-            streak={user.current_streak ?? 0}
-            showCelebration={(user.current_streak ?? 0) % 7 === 0}
+            streak={displayStreak}
+            showCelebration={displayStreak % 7 === 0}
           />
         )}
 
         {/* User Stats Grid */}
         <div className="grid grid-cols-3 gap-3">
           <div className="glass-card rounded-3xl p-5 text-center">
-            <div className="text-3xl font-black text-white">{user.current_streak}</div>
+            <div className="text-3xl font-black text-white">{displayStreak}</div>
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Streak</div>
           </div>
           <div className="glass-card rounded-3xl p-5 text-center border-primary/20">

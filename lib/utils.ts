@@ -2,17 +2,77 @@ import { Database } from '@/types/database.types'
 
 type ConsistLog = Database['public']['Tables']['consist_logs']['Row']
 
+// ─── Date helpers (all local-time, no UTC shifting) ───────────────────────────
+
+// Parse a YYYY-MM-DD string into a LOCAL Date object.
+// Using `new Date('YYYY-MM-DD')` parses as UTC midnight which shifts the date
+// in non-UTC timezones. The multi-arg constructor avoids that entirely.
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// Format a Date to YYYY-MM-DD using local time (not UTC)
+function localDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+// Number of calendar days from `earlier` to `later` (positive = later is ahead)
+export function daysBetween(earlier: string, later: string): number {
+  const a = parseDateLocal(earlier)
+  const b = parseDateLocal(later)
+  return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+// Return the date string for the day before `dateStr`
+function previousDay(dateStr: string): string {
+  const d = parseDateLocal(dateStr)
+  d.setDate(d.getDate() - 1)
+  return localDateString(d)
+}
+
+// ─── Public date utilities ────────────────────────────────────────────────────
+
 /**
- * Calculate user's current streak based on consist logs
- * 
- * @param logs - Array of consist logs sorted by date DESC
- * @param today - Today's date string (YYYY-MM-DD)
- * @returns Object with current streak count and whether it's a new record
+ * Today's date in YYYY-MM-DD using the device's LOCAL timezone.
+ * Previously used toISOString() which is UTC and shifts the date for UTC+ users.
+ */
+export function getTodayDate(): string {
+  return localDateString(new Date())
+}
+
+export function isToday(date: string): boolean {
+  return date === getTodayDate()
+}
+
+export function isYesterday(date: string): boolean {
+  return date === previousDay(getTodayDate())
+}
+
+// ─── Streak calculation ───────────────────────────────────────────────────────
+
+/**
+ * Calculate the current streak from a list of consist logs.
+ *
+ * Rule: a streak breaks only if the user misses TWO consecutive days.
+ * Missing one day is a grace period — the streak continues.
+ *
+ * Gap logic (gap = how many days the log is behind the expected date):
+ *   gap === 0  → matched expected day, streak++, step expected back 1
+ *   gap === 1  → exactly 1 day missed (grace period), streak++, step expected
+ *                back to the day before this log
+ *   gap >= 2   → 2+ consecutive days missed, streak is broken, stop
+ *
+ * @param logs  - Consist logs (any order, duplicates OK)
+ * @param today - Today's date string (YYYY-MM-DD, local time)
  */
 export function calculateStreak(
-  logs: ConsistLog[], 
+  logs: ConsistLog[],
   today: string
-): { 
+): {
   currentStreak: number
   isNewRecord: boolean
 } {
@@ -20,38 +80,57 @@ export function calculateStreak(
     return { currentStreak: 0, isNewRecord: false }
   }
 
-  // Convert dates to date objects for comparison
-  const sortedLogs = [...logs].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+  // Deduplicate and sort newest → oldest
+  const sortedDates = [...new Set(logs.map(l => l.date))].sort((a, b) =>
+    b.localeCompare(a)
   )
 
   let streak = 0
-  let currentDate = new Date(today)
-  
-  for (const log of sortedLogs) {
-    const logDate = new Date(log.date)
-    const dateString = logDate.toISOString().split('T')[0]
-    const expectedDate = currentDate.toISOString().split('T')[0]
-    
-    if (dateString === expectedDate) {
+  let expected = today
+
+  for (const logDate of sortedDates) {
+    const gap = daysBetween(logDate, expected) // positive = logDate is behind expected
+
+    if (gap === 0) {
+      // Matched expected day exactly
       streak++
-      // Move to previous day
-      currentDate.setDate(currentDate.getDate() - 1)
+      expected = previousDay(expected)
+    } else if (gap === 1) {
+      // Exactly 1 day missed — grace period, streak continues
+      streak++
+      expected = previousDay(logDate)
     } else {
-      // Gap in streak, stop counting
+      // 2+ consecutive days missed — streak broken
       break
     }
   }
 
-  return {
-    currentStreak: streak,
-    isNewRecord: false // Caller should compare with longest_streak
-  }
+  return { currentStreak: streak, isNewRecord: false }
 }
 
 /**
- * Calculate points for a consist action
+ * Client-side helper to show the correct streak on the dashboard.
+ *
+ * The `current_streak` column is only updated on punch-in, so if a user
+ * missed 2+ days it stays stale until next punch-in. This function returns
+ * 0 when it detects the DB value is stale.
+ *
+ * With the 2-day grace period rule:
+ *   - Last consist today or yesterday         → streak valid
+ *   - Last consist 2 days ago (1 day missed)  → streak valid (grace period)
+ *   - Last consist 3+ days ago (2+ days missed) → streak is 0
  */
+export function getDisplayStreak(
+  currentStreak: number,
+  lastConsistDate: string | null
+): number {
+  if (!lastConsistDate || currentStreak === 0) return currentStreak
+  const daysSinceLast = daysBetween(lastConsistDate, getTodayDate())
+  return daysSinceLast >= 3 ? 0 : currentStreak
+}
+
+// ─── Points calculation ───────────────────────────────────────────────────────
+
 export function calculateConsistPoints(
   wasPushed: boolean,
   newStreak: number,
@@ -68,12 +147,10 @@ export function calculateConsistPoints(
   let streakBonus = 0
   let isNewRecord = false
 
-  // 7-day streak milestone
   if (newStreak === 7) {
     streakBonus = 300
   }
 
-  // New personal record
   if (newStreak > longestStreak) {
     streakBonus += 500
     isNewRecord = true
@@ -84,62 +161,29 @@ export function calculateConsistPoints(
     pushBonus,
     streakBonus,
     total: basePoints + pushBonus + streakBonus,
-    isNewRecord
+    isNewRecord,
   }
 }
 
-/**
- * Format streak display text
- */
+// ─── Display helpers ──────────────────────────────────────────────────────────
+
 export function formatStreakText(streak: number): string {
   if (streak === 0) return 'No streak yet'
   if (streak === 1) return '1 day'
   return `${streak} days`
 }
 
-/**
- * Get motivational message based on streak
- */
 export function getStreakMessage(streak: number): string {
-  if (streak === 0) return "Start your consistency journey! 🎯"
-  if (streak === 1) return "First step taken! Keep going 🚀"
-  if (streak === 3) return "Building momentum! 💪"
-  if (streak === 7) return "One week strong! You're unstoppable! 🔥"
-  if (streak === 14) return "Two weeks! This is becoming a habit 🌟"
-  if (streak === 30) return "30 days! You're an inspiration! 👑"
-  if (streak >= 100) return "100+ days! Legendary consistency! 🏆"
-  
+  if (streak === 0) return 'Start your consistency journey! 🎯'
+  if (streak === 1) return 'First step taken! Keep going 🚀'
+  if (streak === 3) return 'Building momentum! 💪'
+  if (streak === 7) return 'One week strong! You\'re unstoppable! 🔥'
+  if (streak === 14) return 'Two weeks! This is becoming a habit 🌟'
+  if (streak === 30) return '30 days! You\'re an inspiration! 👑'
+  if (streak >= 100) return '100+ days! Legendary consistency! 🏆'
   return `${streak} days and counting! 🔥`
 }
 
-/**
- * Check if a date is today
- */
-export function isToday(date: string): boolean {
-  const today = new Date().toISOString().split('T')[0]
-  return date === today
-}
-
-/**
- * Check if a date is yesterday
- */
-export function isYesterday(date: string): boolean {
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayString = yesterday.toISOString().split('T')[0]
-  return date === yesterdayString
-}
-
-/**
- * Get today's date in YYYY-MM-DD format
- */
-export function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
-/**
- * Format relative time (e.g., "2 hours ago", "just now")
- */
 export function formatRelativeTime(timestamp: string): string {
   const now = new Date()
   const then = new Date(timestamp)
@@ -153,6 +197,5 @@ export function formatRelativeTime(timestamp: string): string {
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays === 1) return 'yesterday'
   if (diffDays < 7) return `${diffDays}d ago`
-  
   return then.toLocaleDateString()
 }

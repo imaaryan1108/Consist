@@ -9,13 +9,24 @@ type WeeklyCheckinInsert = Database['public']['Tables']['weekly_checkins']['Inse
 type BodyProfileUpdate = Database['public']['Tables']['body_profiles']['Update']
 
 /**
- * Get the start of the current week (Monday)
+ * Format a Date to YYYY-MM-DD using LOCAL time (not UTC)
+ */
+function localDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
+ * Get the start of the current week (Monday) in local time
  */
 function getWeekStartDate(date: Date = new Date()): string {
-  const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
-  const monday = new Date(date.setDate(diff))
-  return monday.toISOString().split('T')[0]
+  const day = date.getDay() // local day-of-week (0=Sun, 1=Mon…)
+  const diff = day === 0 ? -6 : 1 - day // days back to Monday
+  const monday = new Date(date)
+  monday.setDate(date.getDate() + diff)
+  return localDateString(monday)
 }
 
 /**
@@ -148,31 +159,33 @@ export async function getWeeklyCheckinHistory(limit: number = 12): Promise<Weekl
 }
 
 /**
- * Check if user should be prompted for weekly check-in
- * Returns true if no check-in exists for current week
+ * Check if user should be prompted for weekly check-in.
+ * Only prompts on Sundays, and only if no check-in has been submitted this week.
  */
 export async function shouldPromptWeeklyCheckin(): Promise<boolean> {
+  // Only show on Sunday (local day = 0)
+  const today = new Date()
+  if (today.getDay() !== 0) return false
+
   const supabase = await createServerClient()
-  
+
   try {
     const { data: { session }, error: authError } = await supabase.auth.getSession()
-    if (authError || !session) {
-      return false
-    }
-    
+    if (authError || !session) return false
+
     const userId = session.user.id
     const week_start_date = getWeekStartDate()
-    
-    const { data, error } = await supabase
+
+    const { data } = await supabase
       .from('weekly_checkins')
       .select('id')
       .eq('user_id', userId)
       .eq('week_start_date', week_start_date)
       .single()
-    
-    // Prompt if no check-in exists for this week
+
+    // Only prompt if they haven't submitted this week's check-in yet
     return !data
-  } catch (error: any) {
+  } catch {
     return false
   }
 }
