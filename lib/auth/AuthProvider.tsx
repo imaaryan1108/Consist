@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Safety net — if getSession never resolves (mobile Safari, private mode, etc.)
-    const timeout = setTimeout(() => setLoading(false), 5000)
+    const timeout = setTimeout(() => setLoading(false), 3000)
 
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
