@@ -103,7 +103,7 @@ export default function TrackingPage() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/')
+      router.push('/login')
     }
   }, [authLoading, user, router])
 

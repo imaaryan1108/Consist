@@ -67,11 +67,11 @@ export async function middleware(req: NextRequest) {
 
   // Redirect to login if accessing protected route without session
   if (isProtectedPath && !session) {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   // Redirect authenticated users away from login page
-  if (req.nextUrl.pathname === '/' && session) {
+  if (req.nextUrl.pathname === '/login' && session) {
     // Check if user has completed onboarding
     const { data: user } = await supabase
       .from('users')
@@ -90,5 +90,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/profile/:path*'],
+  matcher: ['/login', '/dashboard/:path*', '/profile/:path*'],
 }

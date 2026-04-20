@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase/client'
-import { createCircle, joinCircle, generateCircleCode } from '@/lib/supabase/helpers'
+import { createCircle, joinCircle } from '@/lib/supabase/helpers'
 import { LoadingState } from '@/components/ui/LoadingState'
 
 type Step = 'name' | 'circle-choice' | 'circle-action'
@@ -13,7 +13,7 @@ type CircleChoice = 'create' | 'join'
 export default function OnboardingPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  
+
   const [step, setStep] = useState<Step>('name')
   const [name, setName] = useState('')
   const [circleChoice, setCircleChoice] = useState<CircleChoice | null>(null)
@@ -25,15 +25,13 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/')
+      router.push('/login')
     }
   }, [user, authLoading, router])
 
-  // Check if user already has a profile
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) return
-
       const { data } = await supabase
         .from('users')
         .select('name, circle_id')
@@ -42,37 +40,26 @@ export default function OnboardingPage() {
 
       if (data) {
         if (data.circle_id) {
-          // User already has circle, go to dashboard
           router.push('/dashboard')
         } else if (data.name) {
-          // User has name but no circle
           setName(data.name)
           setStep('circle-choice')
         }
       }
     }
-
     checkProfile()
   }, [user, router])
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !user) return
-
     setLoading(true)
     setError('')
-
     try {
       const { error } = await supabase
         .from('users')
-        .upsert({
-          id: user.id,
-          name: name.trim(),
-          updated_at: new Date().toISOString(),
-        })
-
+        .upsert({ id: user.id, name: name.trim(), updated_at: new Date().toISOString() })
       if (error) throw error
-
       setStep('circle-choice')
     } catch (err: any) {
       setError(err.message)
@@ -81,30 +68,18 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleCircleChoice = (choice: CircleChoice) => {
-    setCircleChoice(choice)
-    setStep('circle-action')
-  }
-
   const handleCreateCircle = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!circleName.trim() || !user) return
-
     setLoading(true)
     setError('')
-
     try {
-      // Create the circle
       const circle = await createCircle(circleName.trim(), user.id)
-      
-      // Update user with circle_id
       const { error: updateError } = await supabase
         .from('users')
         .update({ circle_id: circle.id })
         .eq('id', user.id)
-
       if (updateError) throw updateError
-
       setGeneratedCode(circle.code)
     } catch (err: any) {
       setError(err.message)
@@ -116,25 +91,16 @@ export default function OnboardingPage() {
   const handleJoinCircle = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!circleCode.trim() || !user) return
-
     setLoading(true)
     setError('')
-
     try {
       const circle = await joinCircle(circleCode.trim())
-
-      if (!circle) {
-        throw new Error('Circle not found. Please check the code and try again.')
-      }
-
-      // Update user with circle_id
+      if (!circle) throw new Error('Circle not found. Check the code and try again.')
       const { error: updateError } = await supabase
         .from('users')
         .update({ circle_id: circle.id })
         .eq('id', user.id)
-
       if (updateError) throw updateError
-
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
@@ -143,39 +109,45 @@ export default function OnboardingPage() {
     }
   }
 
-  if (authLoading) {
-    return <LoadingState variant="full" />
-  }
+  if (authLoading) return <LoadingState variant="full" />
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4">
-      <div className="w-full max-w-md">
-        {/* Step 1: Enter Name */}
+    <main className="min-h-screen bg-charcoal flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-primary/8 blur-[130px] rounded-full" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary/5 blur-[100px] rounded-full" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <span className="text-3xl font-black tracking-tighter text-white">
+            CONSIST<span className="text-primary italic">.</span>
+          </span>
+        </div>
+
+        {/* Step 1: Name */}
         {step === 'name' && (
-          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl space-y-6">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-white mb-2">Welcome to Consist! 🎯</h1>
-              <p className="text-gray-400">Let's get you set up</p>
+          <div className="glass-card rounded-[2rem] p-8 border border-white/5 space-y-6">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-black tracking-tighter text-white">What's your name?</h1>
+              <p className="text-slate-500 text-sm font-medium">Your circle will see this.</p>
             </div>
 
             <form onSubmit={handleNameSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                  What's your name?
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                autoFocus
+                className="w-full px-5 py-4 bg-charcoal-700 border border-white/5 rounded-2xl text-white font-bold placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-colors"
+                required
+              />
 
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -183,77 +155,72 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={loading || !name.trim()}
-                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50"
+                className="w-full py-4 bg-primary text-charcoal font-black uppercase tracking-widest rounded-2xl shadow-neon transition-all hover:shadow-neon-strong disabled:opacity-50"
               >
-                {loading ? 'Saving...' : 'Continue'}
+                {loading ? 'Saving...' : 'Continue →'}
               </button>
             </form>
           </div>
         )}
 
-        {/* Step 2: Choose Create or Join */}
+        {/* Step 2: Create or Join */}
         {step === 'circle-choice' && !generatedCode && (
-          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Join Your Circle 👥</h2>
-              <p className="text-gray-400">Create a new circle or join an existing one</p>
+          <div className="glass-card rounded-[2rem] p-8 border border-white/5 space-y-6">
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black tracking-tighter text-white">Your circle.</h2>
+              <p className="text-slate-500 text-sm font-medium">Start one or join an existing one.</p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="space-y-3">
               <button
-                onClick={() => handleCircleChoice('create')}
-                className="p-6 bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-orange-500 rounded-xl transition-all text-left"
+                onClick={() => { setCircleChoice('create'); setStep('circle-action') }}
+                className="w-full p-6 glass-card rounded-[1.5rem] border border-white/5 hover:border-primary/30 transition-all text-left group"
               >
-                <div className="text-3xl mb-2">🆕</div>
-                <h3 className="text-xl font-semibold text-white mb-1">Create New Circle</h3>
-                <p className="text-gray-400 text-sm">Start a consistency circle and invite your friends</p>
+                <div className="text-3xl mb-3">👥</div>
+                <h3 className="text-lg font-black text-white tracking-tight group-hover:text-primary transition-colors">Create a circle</h3>
+                <p className="text-slate-500 text-sm font-medium mt-1">Start fresh. Invite your crew with a code.</p>
               </button>
 
               <button
-                onClick={() => handleCircleChoice('join')}
-                className="p-6 bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-purple-500 rounded-xl transition-all text-left"
+                onClick={() => { setCircleChoice('join'); setStep('circle-action') }}
+                className="w-full p-6 glass-card rounded-[1.5rem] border border-white/5 hover:border-primary/30 transition-all text-left group"
               >
-                <div className="text-3xl mb-2">🤝</div>
-                <h3 className="text-xl font-semibold text-white mb-1">Join Existing Circle</h3>
-                <p className="text-gray-400 text-sm">Enter a circle code to join your friends</p>
+                <div className="text-3xl mb-3">🤝</div>
+                <h3 className="text-lg font-black text-white tracking-tight group-hover:text-primary transition-colors">Join a circle</h3>
+                <p className="text-slate-500 text-sm font-medium mt-1">Have a code? Enter it and get in.</p>
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 3a: Create Circle */}
+        {/* Step 3a: Create Circle form */}
         {step === 'circle-action' && circleChoice === 'create' && !generatedCode && (
-          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl space-y-6">
+          <div className="glass-card rounded-[2rem] p-8 border border-white/5 space-y-6">
             <button
               onClick={() => setStep('circle-choice')}
-              className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
+              className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-sm font-bold"
             >
               ← Back
             </button>
 
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Create Your Circle 🆕</h2>
-              <p className="text-gray-400">Give your circle a name</p>
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black tracking-tighter text-white">Name your circle.</h2>
+              <p className="text-slate-500 text-sm font-medium">Something your crew will recognize.</p>
             </div>
 
             <form onSubmit={handleCreateCircle} className="space-y-4">
-              <div>
-                <label htmlFor="circleName" className="block text-sm font-medium text-gray-300 mb-2">
-                  Circle Name
-                </label>
-                <input
-                  id="circleName"
-                  type="text"
-                  value={circleName}
-                  onChange={(e) => setCircleName(e.target.value)}
-                  placeholder="e.g., Gym Bros, Morning Warriors"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                value={circleName}
+                onChange={(e) => setCircleName(e.target.value)}
+                placeholder="e.g. Gym Bros, Morning Warriors"
+                autoFocus
+                className="w-full px-5 py-4 bg-charcoal-700 border border-white/5 rounded-2xl text-white font-bold placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-colors"
+                required
+              />
 
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -261,75 +228,73 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={loading || !circleName.trim()}
-                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50"
+                className="w-full py-4 bg-primary text-charcoal font-black uppercase tracking-widest rounded-2xl shadow-neon transition-all hover:shadow-neon-strong disabled:opacity-50"
               >
-                {loading ? 'Creating...' : 'Create Circle'}
+                {loading ? 'Creating...' : 'Create Circle →'}
               </button>
             </form>
           </div>
         )}
 
-        {/* Step 3a-result: Show Generated Code */}
+        {/* Step 3a result: Circle created, show code */}
         {generatedCode && (
-          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl space-y-6">
-            <div className="text-center">
+          <div className="glass-card rounded-[2rem] p-8 border border-primary/10 space-y-6 text-center">
+            <div>
               <div className="text-5xl mb-4">🎉</div>
-              <h2 className="text-3xl font-bold text-white mb-2">Circle Created!</h2>
-              <p className="text-gray-400">Share this code with your friends</p>
+              <h2 className="text-3xl font-black tracking-tighter text-white">Circle created!</h2>
+              <p className="text-slate-500 text-sm font-medium mt-1">Share this code with your crew.</p>
             </div>
 
-            <div className="bg-gradient-to-r from-orange-500/20 to-purple-500/20 border-2 border-orange-500 rounded-xl p-6 text-center">
-              <p className="text-sm text-gray-300 mb-2">Your Circle Code</p>
-              <p className="text-5xl font-bold text-white tracking-wider font-mono">{generatedCode}</p>
+            <div className="bg-black/30 border border-primary/20 rounded-2xl p-6">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-3">Your Circle Code</p>
+              <p className="text-5xl font-black text-primary tracking-[0.3em] font-mono">{generatedCode}</p>
             </div>
 
             <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all"
+              onClick={() => navigator.clipboard.writeText(generatedCode)}
+              className="w-full py-3 rounded-2xl border border-white/10 text-sm font-black uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-all"
             >
-              Go to Dashboard
+              Copy Code
             </button>
 
-            <p className="text-center text-sm text-gray-400">
-              Friends can use this code to join your circle
-            </p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full py-4 bg-primary text-charcoal font-black uppercase tracking-widest rounded-2xl shadow-neon transition-all hover:shadow-neon-strong"
+            >
+              Go to Dashboard →
+            </button>
           </div>
         )}
 
         {/* Step 3b: Join Circle */}
         {step === 'circle-action' && circleChoice === 'join' && (
-          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-800 shadow-2xl space-y-6">
+          <div className="glass-card rounded-[2rem] p-8 border border-white/5 space-y-6">
             <button
               onClick={() => setStep('circle-choice')}
-              className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
+              className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-sm font-bold"
             >
               ← Back
             </button>
 
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Join a Circle 🤝</h2>
-              <p className="text-gray-400">Enter the 6-character code</p>
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black tracking-tighter text-white">Enter the code.</h2>
+              <p className="text-slate-500 text-sm font-medium">Get it from whoever created the circle.</p>
             </div>
 
             <form onSubmit={handleJoinCircle} className="space-y-4">
-              <div>
-                <label htmlFor="circleCode" className="block text-sm font-medium text-gray-300 mb-2">
-                  Circle Code
-                </label>
-                <input
-                  id="circleCode"
-                  type="text"
-                  value={circleCode}
-                  onChange={(e) => setCircleCode(e.target.value.toUpperCase())}
-                  placeholder="ABC123"
-                  maxLength={6}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-center text-2xl font-mono tracking-widest placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                value={circleCode}
+                onChange={(e) => setCircleCode(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                maxLength={6}
+                autoFocus
+                className="w-full px-5 py-4 bg-charcoal-700 border border-white/5 rounded-2xl text-white font-black text-center text-2xl tracking-[0.3em] placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-colors uppercase font-mono"
+                required
+              />
 
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
                   {error}
                 </div>
               )}
@@ -337,9 +302,9 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={loading || circleCode.length !== 6}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50"
+                className="w-full py-4 bg-primary text-charcoal font-black uppercase tracking-widest rounded-2xl shadow-neon transition-all hover:shadow-neon-strong disabled:opacity-50"
               >
-                {loading ? 'Joining...' : 'Join Circle'}
+                {loading ? 'Joining...' : 'Join Circle →'}
               </button>
             </form>
           </div>
