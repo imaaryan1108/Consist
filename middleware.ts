@@ -70,6 +70,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
+  // Redirect authenticated users away from landing page
+  if (req.nextUrl.pathname === '/' && session) {
+    const { data: user } = await supabase
+      .from('users')
+      .select('circle_id')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!user || !user.circle_id) {
+      return NextResponse.redirect(new URL('/onboarding', req.url))
+    }
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
   // Redirect authenticated users away from login page
   if (req.nextUrl.pathname === '/login' && session) {
     // Check if user has completed onboarding
@@ -90,5 +104,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/login', '/dashboard/:path*', '/profile/:path*'],
+  matcher: ['/', '/login', '/dashboard/:path*', '/profile/:path*'],
 }

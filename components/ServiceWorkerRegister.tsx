@@ -12,7 +12,10 @@ export function ServiceWorkerRegister() {
         console.log('[SW] Registered, scope:', reg.scope)
 
         // When a new SW takes over, reload once so stale chunk references are cleared
+        let reloading = false
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloading) return
+          reloading = true
           window.location.reload()
         })
       })
