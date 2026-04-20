@@ -61,21 +61,25 @@ interface LoadingStateProps {
   showIcon?: boolean
 }
 
-export function LoadingState({ 
-  variant = 'inline', 
+export function LoadingState({
+  variant = 'inline',
   message,
-  showIcon = true 
+  showIcon = true
 }: LoadingStateProps) {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
-  const [displayMessage, setDisplayMessage] = useState(
-    message || ALL_MESSAGES[Math.floor(Math.random() * ALL_MESSAGES.length)]
-  )
+  // Start with empty string to avoid SSR/client mismatch (random would differ)
+  const [displayMessage, setDisplayMessage] = useState(message || '')
 
   useEffect(() => {
     if (message) {
       setDisplayMessage(message)
       return
     }
+
+    // Pick initial message client-side only
+    const initial = Math.floor(Math.random() * ALL_MESSAGES.length)
+    setCurrentMessageIndex(initial)
+    setDisplayMessage(ALL_MESSAGES[initial])
 
     // Rotate messages every 3.5 seconds
     const interval = setInterval(() => {
