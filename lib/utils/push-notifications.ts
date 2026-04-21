@@ -15,35 +15,49 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 
 export async function subscribeToPush(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.warn('Push notifications not supported in this browser')
+    console.error('[push] serviceWorker or PushManager not supported')
     return false
   }
 
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') {
-    return false
-  }
+  console.log('[push] notification permission:', permission)
+  if (permission !== 'granted') return false
 
-  const registration = await navigator.serviceWorker.ready
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
   if (!vapidPublicKey) {
-    console.error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set')
+    console.error('[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set')
     return false
   }
 
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  })
+  console.log('[push] waiting for SW to be ready...')
+  const registration = await navigator.serviceWorker.ready
+  console.log('[push] SW ready, scope:', registration.scope)
 
-  const response = await fetch('/api/push/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(subscription),
-  })
+  let subscription: PushSubscription
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    })
+    console.log('[push] subscription created, endpoint:', subscription.endpoint)
+  } catch (err) {
+    console.error('[push] pushManager.subscribe failed:', err)
+    return false
+  }
 
-  return response.ok
+  try {
+    const response = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription),
+    })
+    const data = await response.json()
+    console.log('[push] save response:', response.status, data)
+    return response.ok
+  } catch (err) {
+    console.error('[push] fetch to /api/push/subscribe failed:', err)
+    return false
+  }
 }
 
 export async function unsubscribeFromPush(): Promise<boolean> {

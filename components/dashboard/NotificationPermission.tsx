@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { subscribeToPush, getPermissionState } from '@/lib/utils/push-notifications'
 
 export function NotificationPermission() {
-  const [state, setState] = useState<'idle' | 'prompt' | 'granted' | 'denied' | 'unsupported'>('idle')
+  const [state, setState] = useState<'idle' | 'prompt' | 'granted' | 'denied' | 'unsupported' | 'error'>('idle')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -34,8 +34,19 @@ export function NotificationPermission() {
     setLoading(true)
     const success = await subscribeToPush()
     setLoading(false)
-    setState(success ? 'granted' : 'denied')
+    if (success) {
+      setState('granted')
+    } else {
+      setState('error')
+    }
   }
+
+  if (state === 'error') return (
+    <div className="mx-4 mb-4 rounded-2xl border border-red-500/20 bg-red-900/10 p-4 text-xs text-red-400 font-medium">
+      Failed to enable notifications. Check the browser console for details and try again.
+      <button onClick={() => setState('prompt')} className="ml-2 underline">Retry</button>
+    </div>
+  )
 
   // Don't render anything if granted, denied, or unsupported
   if (state !== 'prompt') return null
