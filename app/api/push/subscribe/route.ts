@@ -14,10 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 })
   }
 
-  // Upsert — one subscription per user, replace on re-subscribe
+  // Delete existing then insert — avoids relying on named unique constraint
+  await supabase.from('push_subscriptions').delete().eq('user_id', user.id)
+
   const { error } = await supabase
     .from('push_subscriptions')
-    .upsert({ user_id: user.id, subscription }, { onConflict: 'user_id' })
+    .insert({ user_id: user.id, subscription })
 
   if (error) {
     console.error('Failed to save push subscription:', error)
