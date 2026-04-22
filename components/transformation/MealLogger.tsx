@@ -137,7 +137,7 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
             type="button"
             onClick={handleAIAnalysis}
             disabled={analyzingAI || !foodName.trim()}
-            className="flex-shrink-0 px-4 py-4 rounded-2xl bg-gradient-to-r from-primary/20 to-violet-500/20 border border-primary/30 hover:border-primary/50 text-primary font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+            className="flex-shrink-0 w-28 py-4 rounded-2xl bg-gradient-to-r from-primary/20 to-violet-500/20 border border-primary/30 hover:border-primary/50 text-primary font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
             {analyzingAI ? (
               <>
