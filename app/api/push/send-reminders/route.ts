@@ -8,9 +8,9 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 )
 
-type ReminderType = 'gym' | 'breakfast' | 'lunch' | 'snack' | 'dinner'
+type ReminderType = 'gym' | 'breakfast' | 'lunch' | 'snack' | 'dinner' | 'test'
 
-const MEAL_MESSAGES: Record<Exclude<ReminderType, 'gym'>, { title: string; body: string }> = {
+const MEAL_MESSAGES: Record<Exclude<ReminderType, 'gym' | 'test'>, { title: string; body: string }> = {
   breakfast: {
     title: 'Breakfast check 🍳',
     body: "Your circle's macros don't wait. Log breakfast before you forget.",
@@ -29,7 +29,7 @@ const MEAL_MESSAGES: Record<Exclude<ReminderType, 'gym'>, { title: string; body:
   },
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
 
   if (type === 'gym') {
     return sendGymReminders(supabase, today)
+  } else if (type === 'test') {
+    return sendTestNotification(supabase)
   } else {
     return sendMealReminders(supabase, today, type)
   }
@@ -88,7 +90,7 @@ async function sendGymReminders(supabase: any, today: string) {
 }
 
 // Notify users who haven't logged a specific meal type today
-async function sendMealReminders(supabase: any, today: string, mealType: Exclude<ReminderType, 'gym'>) {
+async function sendMealReminders(supabase: any, today: string, mealType: Exclude<ReminderType, 'gym' | 'test'>) {
   const message = MEAL_MESSAGES[mealType]
 
   // Get all users who have logged this meal type today
@@ -96,7 +98,7 @@ async function sendMealReminders(supabase: any, today: string, mealType: Exclude
     .from('meal_logs')
     .select('user_id')
     .eq('date', today)
-    .eq('meal_type', mealType === 'snack' ? 'snack' : mealType)
+    .eq('meal_type', mealType)
 
   const loggedUserIds = new Set((loggedUsers || []).map((r: any) => r.user_id))
 
@@ -123,4 +125,26 @@ async function sendMealReminders(supabase: any, today: string, mealType: Exclude
   const sent = results.filter(r => r.status === 'fulfilled').length
   const failed = results.filter(r => r.status === 'rejected').length
   return NextResponse.json({ type: mealType, sent, failed })
+}
+
+async function sendTestNotification(supabase: any) {
+  const { data: subscriptions, error } = await supabase
+    .from('push_subscriptions')
+    .select('subscription')
+
+  if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
+
+  const payload = JSON.stringify({
+    title: 'Test flight 1',
+    body: 'Sorry to disturb XD',
+    url: '/dashboard',
+  })
+
+  const results = await Promise.allSettled(
+    subscriptions.map((row: any) => webpush.sendNotification(row.subscription, payload))
+  )
+
+  const sent = results.filter(r => r.status === 'fulfilled').length
+  const failed = results.filter(r => r.status === 'rejected').length
+  return NextResponse.json({ type: 'test', sent, failed })
 }

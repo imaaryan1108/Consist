@@ -2,23 +2,31 @@
   "crons": [
     {
       "path": "/api/push/send-reminders?type=breakfast",
-      "schedule": "0 3 * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/push/send-reminders?type=lunch",
-      "schedule": "0 7 * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/push/send-reminders?type=snack",
-      "schedule": "30 10 * * *"
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/push/send-reminders?type=dinner",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/push/send-reminders?type=gym",
+      "schedule": "30 2 * * *"
     },
     {
       "path": "/api/push/send-reminders?type=gym",
       "schedule": "30 12 * * *"
     },
     {
-      "path": "/api/push/send-reminders?type=dinner",
-      "schedule": "30 13 * * *"
+      "path": "/api/push/send-reminders?type=test",
+      "schedule": "25 13 * * *"
     }
   ]
 }
