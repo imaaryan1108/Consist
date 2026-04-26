@@ -10,22 +10,47 @@ webpush.setVapidDetails(
 
 type ReminderType = 'gym' | 'breakfast' | 'lunch' | 'snack' | 'dinner' | 'test'
 
-const MEAL_MESSAGES: Record<Exclude<ReminderType, 'gym' | 'test'>, { title: string; body: string }> = {
+// UTC minutes-since-midnight → reminder type
+// IST = UTC+5:30, so IST hour:min → UTC = subtract 5h30m
+const SCHEDULE: Record<number, ReminderType> = {
+  [2 * 60 + 30]: 'gym',       // 08:00 IST
+  [5 * 60 + 0]:  'breakfast', // 10:30 IST
+  [9 * 60 + 0]:  'lunch',     // 14:30 IST
+  [12 * 60 + 30]:'gym',       // 18:00 IST
+  [13 * 60 + 0]: 'snack',     // 18:30 IST
+  [17 * 60 + 0]: 'dinner',    // 22:30 IST
+}
+
+const MESSAGES: Record<ReminderType, { title: string; body: string; url: string }> = {
   breakfast: {
     title: 'Breakfast check 🍳',
     body: "Your circle's macros don't wait. Log breakfast before you forget.",
+    url: '/tracking',
   },
   lunch: {
-    title: 'Lunch o\'clock 🥗',
+    title: "Lunch o'clock 🥗",
     body: "Half the day's gone. Don't let your macros be a mystery — log lunch.",
+    url: '/tracking',
   },
   snack: {
     title: 'Snack check 🍎',
-    body: "4PM. Small wins add up. Log your snack before the day runs away.",
+    body: 'Small wins add up. Log your snack before the day runs away.',
+    url: '/tracking',
   },
   dinner: {
     title: 'Dinner time 🍽️',
-    body: "One meal away from a perfect day. Log dinner and close it out strong.",
+    body: 'One meal away from a perfect day. Log dinner and close it out strong.',
+    url: '/tracking',
+  },
+  gym: {
+    title: 'Consist 💪',
+    body: "Your circle is moving. Have you punched in today?",
+    url: '/dashboard',
+  },
+  test: {
+    title: 'Test flight 1',
+    body: 'Sorry to disturb XD',
+    url: '/dashboard',
   },
 }
 
@@ -36,7 +61,19 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const type = (searchParams.get('type') || 'gym') as ReminderType
+  const manualType = searchParams.get('type') as ReminderType | null
+
+  // Auto-detect from schedule if no type passed
+  let type: ReminderType | null = manualType
+  if (!type) {
+    const now = new Date()
+    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+    type = SCHEDULE[utcMinutes] ?? null
+  }
+
+  if (!type) {
+    return NextResponse.json({ skipped: true, message: 'No reminder scheduled for this time' })
+  }
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,107 +81,57 @@ export async function GET(request: NextRequest) {
   )
 
   const today = new Date().toISOString().split('T')[0]
+  const msg = MESSAGES[type]
 
   if (type === 'gym') {
-    return sendGymReminders(supabase, today)
-  } else if (type === 'test') {
-    return sendTestNotification(supabase)
-  } else {
-    return sendMealReminders(supabase, today, type)
+    // Skip users who already consisted today
+    const { data: subs, error } = await supabase
+      .from('push_subscriptions')
+      .select('subscription, user:user_id(last_consist_date)')
+
+    if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
+
+    const targets = (subs ?? []).filter((row: any) => row.user?.last_consist_date !== today)
+    return sendAll(targets, msg)
   }
-}
 
-// Notify users who haven't consisted today
-async function sendGymReminders(supabase: any, today: string) {
-  const { data: subscriptions, error } = await supabase
-    .from('push_subscriptions')
-    .select(`
-      subscription,
-      user:user_id (
-        id,
-        name,
-        last_consist_date,
-        circles:circle_id ( name )
-      )
-    `)
+  if (type === 'test') {
+    const { data: subs, error } = await supabase
+      .from('push_subscriptions')
+      .select('subscription')
 
-  if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
+    return sendAll(subs ?? [], msg)
+  }
 
-  const results = await Promise.allSettled(
-    subscriptions
-      .filter((row: any) => row.user?.last_consist_date !== today)
-      .map(async (row: any) => {
-        const circleName = row.user?.circles?.name || 'your circle'
-        const payload = JSON.stringify({
-          title: 'Consist 💪',
-          body: `${circleName} is waiting. Have you consisted today?`,
-          url: '/dashboard',
-        })
-        await webpush.sendNotification(row.subscription, payload)
-      })
-  )
-
-  const sent = results.filter(r => r.status === 'fulfilled').length
-  const failed = results.filter(r => r.status === 'rejected').length
-  return NextResponse.json({ type: 'gym', sent, failed })
-}
-
-// Notify users who haven't logged a specific meal type today
-async function sendMealReminders(supabase: any, today: string, mealType: Exclude<ReminderType, 'gym' | 'test'>) {
-  const message = MEAL_MESSAGES[mealType]
-
-  // Get all users who have logged this meal type today
+  // Meal reminder — skip users who already logged this meal type today
   const { data: loggedUsers } = await supabase
     .from('meal_logs')
     .select('user_id')
     .eq('date', today)
-    .eq('meal_type', mealType)
+    .eq('meal_type', type)
 
-  const loggedUserIds = new Set((loggedUsers || []).map((r: any) => r.user_id))
+  const loggedIds = new Set((loggedUsers ?? []).map((r: any) => r.user_id))
 
-  // Get all subscriptions and filter out users who already logged
-  const { data: subscriptions, error } = await supabase
+  const { data: subs, error } = await supabase
     .from('push_subscriptions')
     .select('subscription, user_id')
 
   if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
 
-  const targets = subscriptions.filter((row: any) => !loggedUserIds.has(row.user_id))
-
-  const results = await Promise.allSettled(
-    targets.map(async (row: any) => {
-      const payload = JSON.stringify({
-        title: message.title,
-        body: message.body,
-        url: '/tracking',
-      })
-      await webpush.sendNotification(row.subscription, payload)
-    })
-  )
-
-  const sent = results.filter(r => r.status === 'fulfilled').length
-  const failed = results.filter(r => r.status === 'rejected').length
-  return NextResponse.json({ type: mealType, sent, failed })
+  const targets = (subs ?? []).filter((row: any) => !loggedIds.has(row.user_id))
+  return sendAll(targets, msg)
 }
 
-async function sendTestNotification(supabase: any) {
-  const { data: subscriptions, error } = await supabase
-    .from('push_subscriptions')
-    .select('subscription')
-
-  if (error) return NextResponse.json({ error: 'DB error' }, { status: 500 })
-
-  const payload = JSON.stringify({
-    title: 'Test flight 1',
-    body: 'Sorry to disturb XD',
-    url: '/dashboard',
-  })
-
+async function sendAll(
+  rows: any[],
+  msg: { title: string; body: string; url: string }
+) {
+  const payload = JSON.stringify(msg)
   const results = await Promise.allSettled(
-    subscriptions.map((row: any) => webpush.sendNotification(row.subscription, payload))
+    rows.map((row: any) => webpush.sendNotification(row.subscription, payload))
   )
-
   const sent = results.filter(r => r.status === 'fulfilled').length
   const failed = results.filter(r => r.status === 'rejected').length
-  return NextResponse.json({ type: 'test', sent, failed })
+  return NextResponse.json({ sent, failed })
 }

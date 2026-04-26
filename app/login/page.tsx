@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter()
   const [step, setStep] = useState<AuthStep>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState(['', '', '', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [resendCountdown, setResendCountdown] = useState(0)
@@ -67,7 +67,7 @@ export default function Home() {
   const handleVerifyOTP = async () => {
     const otpCode = otp.join('')
     
-    if (otpCode.length !== 6) {
+    if (otpCode.length !== 8) {
       setMessage({ type: 'error', text: 'Please enter the complete code' })
       return
     }
@@ -95,7 +95,7 @@ export default function Home() {
         text: error.message || 'Invalid or expired code'
       })
       // Clear OTP inputs on error
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', '', '', '', '', ''])
       otpInputRefs.current[0]?.focus()
     } finally {
       setLoading(false)
@@ -111,12 +111,12 @@ export default function Home() {
     setOtp(newOtp)
 
     // Auto-advance to next input
-    if (value && index < 5) {
+    if (value && index < 7) {
       otpInputRefs.current[index + 1]?.focus()
     }
 
     // Auto-submit when all 8 digits entered
-    if (index === 5 && value) {
+    if (index === 7 && value) {
       const fullCode = newOtp.join('')
       if (fullCode.length === 8) {
         // Small delay to show the last digit before submitting
@@ -139,11 +139,11 @@ export default function Home() {
     const pastedData = e.clipboardData.getData('text').trim()
     
     // Check if it's an 8-digit code
-    if (/^\d{6}$/.test(pastedData)) {
+    if (/^\d{8}$/.test(pastedData)) {
       const digits = pastedData.split('')
       setOtp(digits)
       // Focus last input
-      otpInputRefs.current[5]?.focus()
+      otpInputRefs.current[7]?.focus()
       // Auto-submit after paste
       setTimeout(() => {
         handleVerifyOTP()
@@ -156,7 +156,7 @@ export default function Home() {
     
     setLoading(true)
     setMessage(null)
-    setOtp(['', '', '', '', '', ''])
+    setOtp(['', '', '', '', '', '', '', ''])
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -186,7 +186,7 @@ export default function Home() {
 
   const handleBackToEmail = () => {
     setStep('email')
-    setOtp(['', '', '', '', '', ''])
+    setOtp(['', '', '', '', '', '', '', ''])
     setMessage(null)
     setResendCountdown(0)
   }
@@ -309,7 +309,7 @@ export default function Home() {
 
               <button
                 onClick={handleVerifyOTP}
-                disabled={loading || otp.join('').length !== 6}
+                disabled={loading || otp.join('').length !== 8}
                 className="w-full px-8 py-5 bg-primary text-charcoal font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-neon disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed uppercase tracking-tighter text-lg"
               >
                 {loading ? (
