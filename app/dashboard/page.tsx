@@ -14,9 +14,7 @@ import { getBodyProfile } from '@/app/actions/body-profile'
 import { getTarget, getTargetProgress } from '@/app/actions/targets'
 import { getDailySummary } from '@/app/actions/meals'
 import { getWeeklySummary } from '@/app/actions/history'
-import { MotivationalQuoteCard } from '@/components/motivation/MotivationalQuoteCard'
 import { TargetWeightHero } from '@/components/motivation/TargetWeightHero'
-import { StreakCelebration } from '@/components/motivation/StreakCelebration'
 import { GoalsProgressCard } from '@/components/dashboard/GoalsProgressCard'
 import { HistoryTrendsCard } from '@/components/dashboard/HistoryTrendsCard'
 import { NotificationPermission } from '@/components/dashboard/NotificationPermission'
@@ -28,7 +26,11 @@ type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
 type Target = Database['public']['Tables']['targets']['Row']
 
 import { LoadingState } from '@/components/ui/LoadingState'
+import { AnimatedSection } from '@/components/ui/AnimatedSection'
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
+import { TiltCard } from '@/components/ui/TiltCard'
 import { getTodayDate, getDisplayStreak } from '@/lib/utils'
+import { haptic } from '@/lib/utils/haptic'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -109,6 +111,20 @@ export default function DashboardPage() {
     }
 
     fetchUserData()
+
+    // Refetch target progress when user returns to this tab (e.g. after updating weight in profile)
+    const handleFocus = async () => {
+      if (!authUser) return
+      const [profileData, progressData] = await Promise.all([
+        getBodyProfile(),
+        getTargetProgress(),
+      ])
+      if (profileData) setBodyProfile(profileData)
+      if (progressData) setTargetProgress(progressData)
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [authUser, router])
 
   // Real-time subscription for meals - update daily summary
@@ -276,7 +292,8 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Consist Button Section */}
+        {/* Consist Button */}
+        <AnimatedSection delay={0.05}>
         <section className="neon-glow rounded-[2.5rem]">
           <ConsistButton
             hasConsisted={hasConsisted}
@@ -291,36 +308,36 @@ export default function DashboardPage() {
             }}
           />
         </section>
+        </AnimatedSection>
 
-        {/* Motivational Quote */}
-        <MotivationalQuoteCard />
-
-           {/* Streak Celebration */}
-        {displayStreak > 0 && (
-          <StreakCelebration
-            streak={displayStreak}
-            showCelebration={displayStreak % 7 === 0}
-          />
-        )}
-
-        {/* User Stats Grid */}
+        {/* Personal Streak */}
+        <AnimatedSection delay={0.1}>
         <div className="grid grid-cols-3 gap-3">
-          <div className="glass-card rounded-3xl p-5 text-center">
-            <div className="text-3xl font-black text-white">{displayStreak}</div>
+          <TiltCard intensity={15} className="glass-card rounded-3xl p-5 text-center">
+            <AnimatedNumber value={displayStreak} className="text-3xl font-black text-white" />
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Streak</div>
-          </div>
-          <div className="glass-card rounded-3xl p-5 text-center border-primary/20">
-            <div className="text-3xl font-black text-primary">{user.longest_streak}</div>
+          </TiltCard>
+          <TiltCard intensity={15} className="glass-card rounded-3xl p-5 text-center border-primary/20">
+            <AnimatedNumber value={user.longest_streak ?? 0} className="text-3xl font-black text-primary" />
             <div className="text-[10px] uppercase tracking-widest text-primary/50 font-bold mt-1">Record</div>
-          </div>
-          <div className="glass-card rounded-3xl p-5 text-center">
-            <div className="text-3xl font-black text-white">{user.score}</div>
+          </TiltCard>
+          <TiltCard intensity={15} className="glass-card rounded-3xl p-5 text-center">
+            <AnimatedNumber value={user.score ?? 0} className="text-3xl font-black text-white" />
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Points</div>
-          </div>
+          </TiltCard>
         </div>
+        </AnimatedSection>
 
-        {/* Goals & Progress Card */}
+        {/* Today's Pulse */}
+        <AnimatedSection delay={0.15}>
+        <section>
+          <CircleMembers circleId={circle.id} currentUserId={user.id} />
+        </section>
+        </AnimatedSection>
+
+        {/* Today's Goals */}
         {dailySummary && (
+          <AnimatedSection delay={0.2}>
           <GoalsProgressCard
             current={{
               calories: dailySummary.total_calories,
@@ -344,10 +361,24 @@ export default function DashboardPage() {
                 : null
             }
           />
+          </AnimatedSection>
         )}
 
-        {/* History & Trends Card */}
+        {/* Transformation Goal */}
+        {target && bodyProfile && targetProgress && (
+          <AnimatedSection delay={0.05}>
+          <TargetWeightHero
+            currentWeight={bodyProfile.current_weight_kg}
+            targetWeight={target.target_weight_kg}
+            targetDate={target.target_date}
+            weightLost={targetProgress.weight_lost_kg}
+          />
+          </AnimatedSection>
+        )}
+
+        {/* History */}
         {weeklySummary && (
+          <AnimatedSection delay={0.05}>
           <HistoryTrendsCard
             weekSummary={{
               daysTracked: weeklySummary.daysTracked,
@@ -357,53 +388,41 @@ export default function DashboardPage() {
               workoutsCompleted: weeklySummary.workoutsCompleted
             }}
           />
+          </AnimatedSection>
         )}
 
-        {/* Target Weight Hero (if target exists) */}
-        {target && bodyProfile && targetProgress && (
-          <TargetWeightHero
-            currentWeight={bodyProfile.current_weight_kg}
-            targetWeight={target.target_weight_kg}
-            targetDate={target.target_date}
-            weightLost={targetProgress.weight_lost_kg}
-          />
-        )}
-
-     
-
-        {/* Circle Members List */}
-        <section>
-            <CircleMembers 
-                circleId={circle.id} 
-                currentUserId={user.id} 
-            />
-        </section>
-
-        {/* Activity Feed */}
-        <section>
-            <ActivityFeed circleId={circle.id} />
-        </section>
-
-        {/* Circle Code Card */}
-        <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden">
-          <div className="relative z-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Invite Friends</p>
-            <div className="flex items-center justify-between bg-black/40 rounded-2xl p-4 border border-white/5">
-              <code className="text-2xl font-black text-white tracking-[0.2em]">
-                {circle.code}
-              </code>
-              <button 
-                onClick={() => navigator.clipboard.writeText(circle.code)}
-                className="text-xs bg-primary text-charcoal font-black px-4 py-2 rounded-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter"
-              >
-                Copy
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-500 font-medium mt-4 uppercase tracking-wider text-center">
-              Share this code to build your circle.
-            </p>
+        {/* Circle Activity — last 7 days, scrollable */}
+        <AnimatedSection delay={0.05}>
+        <section className="glass-card rounded-[2rem] border border-white/5 overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Circle Activity</p>
           </div>
+          <div className="max-h-80 overflow-y-auto px-5 pb-5">
+            <ActivityFeed circleId={circle.id} />
+          </div>
+        </section>
+        </AnimatedSection>
+
+        {/* Invite Friends */}
+        <AnimatedSection delay={0.05}>
+        <div className="glass-card rounded-[2rem] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Invite Friends</p>
+          <div className="flex items-center justify-between bg-black/40 rounded-2xl p-4 border border-white/5">
+            <code className="text-2xl font-black text-white tracking-[0.2em]">
+              {circle.code}
+            </code>
+            <button
+              onClick={() => { haptic('light'); navigator.clipboard.writeText(circle.code) }}
+              className="text-xs bg-primary text-charcoal font-black px-4 py-2 rounded-xl active:scale-95 transition-all uppercase tracking-tighter"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-500 font-medium mt-4 uppercase tracking-wider text-center">
+            Share this code to build your circle.
+          </p>
         </div>
+        </AnimatedSection>
 
         {/* Coming Soon Section
         <div className="pt-6 border-t border-white/5">

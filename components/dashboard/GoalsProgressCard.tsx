@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { MacroProgress } from '@/components/transformation/MacroProgress'
+import { TiltCard } from '@/components/ui/TiltCard'
 
 interface GoalsProgressCardProps {
   current: {
@@ -25,6 +26,7 @@ interface GoalsProgressCardProps {
 
 export function GoalsProgressCard({ current, targets, targetWeight }: GoalsProgressCardProps) {
   return (
+    <TiltCard intensity={8}>
     <div className="glass-card border border-white/10 rounded-[2rem] p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
@@ -62,5 +64,6 @@ export function GoalsProgressCard({ current, targets, targetWeight }: GoalsProgr
         </button>
       </Link>
     </div>
+    </TiltCard>
   )
 }

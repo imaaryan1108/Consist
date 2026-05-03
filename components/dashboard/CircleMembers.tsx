@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@/types/database.types'
 import { isToday, getDisplayStreak } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '@/lib/utils/haptic'
 
 type User = Database['public']['Tables']['users']['Row']
 
@@ -62,6 +63,7 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
 
   const handlePush = async (targetId: string, memberName: string) => {
     if (pushingId || pushedIds.has(targetId)) return
+    haptic('medium')
     setPushingId(targetId)
     try {
       const { pushMember } = await import('@/app/actions')

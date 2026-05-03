@@ -6,6 +6,7 @@ import confetti from 'canvas-confetti'
 import { punchIn } from '@/app/actions'
 import { motion } from 'framer-motion'
 import { getStreakMessage } from '@/lib/utils'
+import { haptic } from '@/lib/utils/haptic'
 import { Database } from '@/types/database.types'
 
 type Milestone = Database['public']['Tables']['milestones']['Row']
@@ -32,6 +33,7 @@ export function ConsistButton({
   const handleConsist = async () => {
     if (loading || consisted) return
 
+    haptic('medium')
     setLoading(true)
     setError('')
 
@@ -42,6 +44,7 @@ export function ConsistButton({
         throw new Error(result.message)
       }
 
+      haptic('success')
       setConsisted(true)
       if (result.streak) setStreak(result.streak)
       

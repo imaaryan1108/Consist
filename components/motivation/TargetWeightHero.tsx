@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { TiltCard } from '@/components/ui/TiltCard'
 
 interface TargetWeightHeroProps {
   currentWeight: number
@@ -24,6 +25,7 @@ export function TargetWeightHero({
     : null
 
   return (
+    <TiltCard intensity={10}>
     <div className="glass-card border border-primary/30 rounded-3xl p-6 relative overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 animate-pulse opacity-50" />
@@ -107,5 +109,6 @@ export function TargetWeightHero({
         </div>
       </div>
     </div>
+    </TiltCard>
   )
 }

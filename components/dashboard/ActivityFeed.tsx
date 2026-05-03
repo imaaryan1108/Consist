@@ -79,8 +79,9 @@ export function ActivityFeed({ circleId, initialActivities = [] }: ActivityFeedP
           target:target_id(*)
         `)
         .eq('circle_id', circleId)
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
-        .limit(20)
+        .limit(50)
 
       if (error) throw error
       if (data) setActivities(data as any)
