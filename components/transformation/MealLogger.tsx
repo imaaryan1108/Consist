@@ -188,14 +188,14 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
             key={type}
             type="button"
             onClick={() => setMealType(type)}
-            className={`py-3 px-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border ${
+            className={`h-16 flex flex-col items-center justify-center gap-1 rounded-xl font-black text-[10px] uppercase tracking-wide transition-all border ${
               mealType === type
                 ? 'bg-primary/10 border-primary/50 text-primary'
                 : 'glass-card border-white/10 text-slate-500 hover:text-white hover:border-white/20'
             }`}
           >
-            <div className="text-lg mb-1">{mealIcons[type]}</div>
-            {type}
+            <span className="text-lg leading-none">{mealIcons[type]}</span>
+            <span className="leading-none">{type}</span>
           </button>
         ))}
       </div>
@@ -410,6 +410,45 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Done CTA — shown after photo/voice analysis fills values */}
+      <AnimatePresence>
+        {aiStatus === 'done' && aiMode !== 'text' && calories && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="bg-primary/10 border border-primary/30 rounded-2xl p-4 space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✅</span>
+              <p className="text-sm font-black text-primary">Macros filled — review below</p>
+            </div>
+            {/* Quick macro summary */}
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                { label: 'kcal', value: calories },
+                { label: 'protein', value: protein ? `${protein}g` : '—' },
+                { label: 'carbs', value: carbs ? `${carbs}g` : '—' },
+                { label: 'fats', value: fats ? `${fats}g` : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-white/5 rounded-xl py-2 px-1">
+                  <p className="text-white font-black text-sm leading-none">{value}</p>
+                  <p className="text-slate-500 text-[9px] font-bold uppercase mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary text-charcoal font-black uppercase tracking-widest py-3 rounded-xl shadow-neon transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
+            >
+              {loading ? 'Logging...' : `Log ${mealType} →`}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* AI Feedback */}
       <AnimatePresence>

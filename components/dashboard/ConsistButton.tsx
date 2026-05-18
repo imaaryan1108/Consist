@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { getStreakMessage } from '@/lib/utils'
 import { haptic } from '@/lib/utils/haptic'
 import { track } from '@/lib/analytics/analytics'
-import { TITLES } from '@/app/actions/titles'
+import { TITLES } from '@/lib/gamification/titles-config'
 import { Database } from '@/types/database.types'
 
 type Milestone = Database['public']['Tables']['milestones']['Row']

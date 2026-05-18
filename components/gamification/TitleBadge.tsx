@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { TITLES, RARITY_COLORS } from '@/app/actions/titles'
+import { TITLES, RARITY_COLORS } from '@/lib/gamification/titles-config'
 
 interface TitleBadgeProps {
   titleKey: string

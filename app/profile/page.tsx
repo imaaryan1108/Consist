@@ -13,7 +13,9 @@ import { TargetSetupForm } from '@/components/transformation/TargetSetupForm'
 import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
 import { TargetProgress } from '@/app/actions/targets'
 import { LoadingState } from '@/components/ui/LoadingState'
-import { getUserTitles, setActiveTitle, TITLES, RARITY_COLORS } from '@/app/actions/titles'
+import { getUserTitles, setActiveTitle } from '@/app/actions/titles'
+import { TITLES, RARITY_COLORS } from '@/lib/gamification/titles-config'
+import { getTitleProgress, TitleProgress } from '@/app/actions/title-progress'
 import { track } from '@/lib/analytics/analytics'
 import { TitleBadge } from '@/components/gamification/TitleBadge'
 import { BattleScars } from '@/components/gamification/BattleScars'
@@ -34,6 +36,7 @@ export default function ProfilePage() {
   const [targetProgress, setTargetProgress] = useState<TargetProgress | null>(null)
   const [loading, setLoading] = useState(true)
   const [userTitles, setUserTitles] = useState<any[]>([])
+  const [titleProgress, setTitleProgress] = useState<TitleProgress[]>([])
   const [settingTitle, setSettingTitle] = useState(false)
   const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
   const [editingTarget, setEditingTarget] = useState(false)
@@ -78,9 +81,13 @@ export default function ProfilePage() {
         setTarget(targetData)
         setTargetProgress(progressData)
 
-        // Fetch earned titles
-        const titles = await getUserTitles(authUser.id)
+        // Fetch earned titles + progress toward all titles
+        const [titles, progress] = await Promise.all([
+          getUserTitles(authUser.id),
+          getTitleProgress(authUser.id),
+        ])
         setUserTitles(titles)
+        setTitleProgress(progress)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -404,73 +411,90 @@ export default function ProfilePage() {
         </div>
 
         {/* Titles & Battle Scars */}
-        {userTitles.length > 0 && (
-          <div className="space-y-4 pt-6 border-t border-white/5">
-            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] px-2 italic">
-              Your Titles
-            </h3>
+        <div className="space-y-4 pt-6 border-t border-white/5">
+          <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] px-2 italic">
+            Titles — {userTitles.length}/{Object.keys(TITLES).length} Earned
+          </h3>
 
-            <div className="glass-card rounded-[2rem] p-5 space-y-3">
-              {userTitles.map((t, i) => {
-                const title = TITLES[t.title_key]
-                if (!title) return null
-                const colors = RARITY_COLORS[title.rarity]
-                const isActive = t.is_active
+          <div className="glass-card rounded-[2rem] p-5 space-y-3">
+            {Object.keys(TITLES).map((key, i) => {
+              const title = TITLES[key]
+              const earned = userTitles.find(t => t.title_key === key)
+              const prog = titleProgress.find(p => p.title_key === key)
+              const isActive = earned?.is_active ?? false
+              const colors = RARITY_COLORS[title.rarity]
 
-                return (
-                  <motion.button
-                    key={t.title_key}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    disabled={settingTitle || isActive}
+              return (
+                <motion.div
+                  key={key}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <button
+                    type="button"
+                    disabled={!earned || settingTitle || isActive}
                     onClick={async () => {
+                      if (!earned) return
                       setSettingTitle(true)
-                      await setActiveTitle(t.title_key)
-                      track.titleEquipped({ title_key: t.title_key })
-                      setUserTitles(prev => prev.map(ut => ({
-                        ...ut,
-                        is_active: ut.title_key === t.title_key
-                      })))
+                      await setActiveTitle(key)
+                      track.titleEquipped({ title_key: key })
+                      setUserTitles(prev => prev.map(ut => ({ ...ut, is_active: ut.title_key === key })))
                       setSettingTitle(false)
                     }}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                      isActive
-                        ? `${colors} shadow-sm`
-                        : 'bg-white/3 border-white/5 hover:border-white/10'
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${
+                      earned
+                        ? isActive
+                          ? `${colors} shadow-sm`
+                          : 'bg-white/5 border-white/10 hover:border-white/20'
+                        : 'bg-white/2 border-white/5 opacity-60 cursor-default'
                     }`}
                   >
-                    <span className="text-2xl">{title.emoji}</span>
-                    <div className="flex-1 text-left">
-                      <p className="font-black text-sm tracking-tight">{title.label}</p>
+                    <span className={`text-2xl ${!earned ? 'grayscale opacity-50' : ''}`}>
+                      {earned ? title.emoji : '🔒'}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`font-black text-sm tracking-tight ${!earned ? 'text-slate-500' : 'text-white'}`}>
+                          {title.label}
+                        </p>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${colors} ${!earned ? 'opacity-40' : ''}`}>
+                          {title.rarity}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-slate-500 font-medium mt-0.5">{title.description}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${colors}`}>
-                        {title.rarity}
-                      </span>
-                      {isActive && (
-                        <span className="text-[9px] font-black text-primary uppercase tracking-wider">Wearing</span>
+
+                      {/* Progress bar for unearned titles */}
+                      {!earned && prog && prog.pct > 0 && (
+                        <div className="mt-2">
+                          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-slate-400 rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${prog.pct}%` }}
+                              transition={{ duration: 0.8, delay: i * 0.04 + 0.3 }}
+                            />
+                          </div>
+                          <p className="text-[9px] text-slate-600 font-bold mt-1">
+                            {prog.current}/{prog.required} — {prog.pct}%{prog.pct >= 50 ? ' 🔥' : ''}
+                          </p>
+                        </div>
                       )}
                     </div>
-                  </motion.button>
-                )
-              })}
 
-              {userTitles.length === 0 && (
-                <p className="text-center text-slate-600 text-xs font-bold py-4">
-                  Punch in to earn your first title.
-                </p>
-              )}
-            </div>
-
-            {/* Battle Scars */}
-            <BattleScars
-              scars={[]}
-              longestEver={user?.longest_streak ?? 0}
-            />
+                    <div className="flex-shrink-0">
+                      {earned && isActive && <span className="text-[9px] font-black text-primary uppercase tracking-wider">Wearing ✓</span>}
+                      {earned && !isActive && <span className="text-[9px] font-bold text-slate-500 uppercase">Tap to wear</span>}
+                    </div>
+                  </button>
+                </motion.div>
+              )
+            })}
           </div>
-        )}
+
+          <BattleScars scars={[]} longestEver={user?.longest_streak ?? 0} />
+        </div>
 
         {/* Account Actions */}
         <div className="space-y-4 pt-4">

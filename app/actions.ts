@@ -180,11 +180,17 @@ export async function punchIn() {
       url: '/dashboard',
     })
 
-    // Check and award titles + chapter progress
-    const [newTitles] = await Promise.all([
-      checkAndAwardTitles(userId),
-      checkAndUpdateChapter(user.circle_id),
-    ])
+    // Check and award titles + chapter progress (non-critical — ignore if tables don't exist yet)
+    let newTitles: string[] = []
+    try {
+      const [titles] = await Promise.all([
+        checkAndAwardTitles(userId),
+        checkAndUpdateChapter(user.circle_id),
+      ])
+      newTitles = titles ?? []
+    } catch {
+      // gamification tables not yet created
+    }
 
     revalidatePath('/dashboard')
 

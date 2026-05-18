@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { TITLES, RARITY_COLORS } from '@/app/actions/titles'
+import { TITLES, RARITY_COLORS } from '@/lib/gamification/titles-config'
 import confetti from 'canvas-confetti'
 
 interface Props {

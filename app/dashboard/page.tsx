@@ -31,6 +31,7 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 import { TiltCard } from '@/components/ui/TiltCard'
 import { ChapterProgress } from '@/components/gamification/ChapterProgress'
 import { NewTitleToast } from '@/components/gamification/NewTitleToast'
+import { NextTitleCard } from '@/components/gamification/NextTitleCard'
 import { getTodayDate, getDisplayStreak } from '@/lib/utils'
 import { haptic } from '@/lib/utils/haptic'
 import { track } from '@/lib/analytics/analytics'
@@ -334,6 +335,11 @@ export default function DashboardPage() {
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Points</div>
           </TiltCard>
         </div>
+        </AnimatedSection>
+
+        {/* Next Title nudge */}
+        <AnimatedSection delay={0.12}>
+          <NextTitleCard userId={user.id} />
         </AnimatedSection>
 
         {/* Today's Pulse */}

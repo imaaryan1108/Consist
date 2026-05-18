@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { getCurrentChapterProgress, getCircleChapters, CHAPTERS } from '@/app/actions/chapters'
+import { getCurrentChapterProgress, getCircleChapters } from '@/app/actions/chapters'
+import { CHAPTERS } from '@/lib/gamification/titles-config'
 import { track } from '@/lib/analytics/analytics'
 
 interface Props { circleId: string }
@@ -46,20 +47,20 @@ export function ChapterProgress({ circleId }: Props) {
   return (
     <div className="glass-card rounded-[2rem] border border-white/5 overflow-hidden">
       {/* Header */}
-      <div className={`p-5 bg-gradient-to-r ${chapter.color} bg-opacity-10 relative overflow-hidden`}>
-        <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="relative z-10 flex items-start justify-between">
+      <div className="p-5 relative overflow-hidden" style={{ background: chapter.gradient }}>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-20 pointer-events-none" />
+        <div className={`relative z-10 flex items-start justify-between ${chapter.darkText ? 'text-charcoal' : 'text-white'}`}>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50 mb-1">
+            <p className={`text-[10px] font-black uppercase tracking-[0.25em] mb-1 ${chapter.darkText ? 'text-charcoal/60' : 'text-white/60'}`}>
               Chapter {chapter.number}
             </p>
-            <h3 className="text-2xl font-black tracking-tighter text-white">{chapter.name}</h3>
+            <h3 className="text-2xl font-black tracking-tighter">{chapter.name}</h3>
           </div>
           <div className="text-right">
-            <div className={`text-2xl font-black ${isAchieved ? 'text-primary' : 'text-white'}`}>
+            <div className="text-2xl font-black">
               {rate.toFixed(0)}%
             </div>
-            <div className="text-[10px] text-white/40 font-bold uppercase tracking-wider">
+            <div className={`text-[10px] font-bold uppercase tracking-wider ${chapter.darkText ? 'text-charcoal/60' : 'text-white/60'}`}>
               {isAchieved ? 'Achieved ✓' : `Need ${chapter.threshold}%`}
             </div>
           </div>
@@ -129,7 +130,8 @@ export function ChapterProgress({ circleId }: Props) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 300 }}
-                    className={`px-3 py-1.5 rounded-full bg-gradient-to-r ${ch?.color ?? 'from-slate-500 to-slate-400'} text-[10px] font-black text-white uppercase tracking-wider`}
+                    className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                    style={{ background: ch?.gradient ?? 'linear-gradient(135deg,#64748b,#94a3b8)', color: ch?.darkText ? '#0D0D0D' : '#fff' }}
                   >
                     Ch.{c.chapter_number} {c.chapter_name} ✓
                   </motion.div>
