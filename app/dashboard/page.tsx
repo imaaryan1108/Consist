@@ -31,6 +31,7 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 import { TiltCard } from '@/components/ui/TiltCard'
 import { getTodayDate, getDisplayStreak } from '@/lib/utils'
 import { haptic } from '@/lib/utils/haptic'
+import { track } from '@/lib/analytics/analytics'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -412,7 +413,7 @@ export default function DashboardPage() {
               {circle.code}
             </code>
             <button
-              onClick={() => { haptic('light'); navigator.clipboard.writeText(circle.code) }}
+              onClick={() => { haptic('light'); navigator.clipboard.writeText(circle.code); track.circleCodeCopied() }}
               className="text-xs bg-primary text-charcoal font-black px-4 py-2 rounded-xl active:scale-95 transition-all uppercase tracking-tighter"
             >
               Copy

@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase/client'
 import { createCircle, joinCircle } from '@/lib/supabase/helpers'
 import { LoadingState } from '@/components/ui/LoadingState'
+import { track } from '@/lib/analytics/analytics'
 
 type Step = 'name' | 'circle-choice' | 'circle-action'
 type CircleChoice = 'create' | 'join'
@@ -80,6 +81,8 @@ export default function OnboardingPage() {
         .update({ circle_id: circle.id })
         .eq('id', user.id)
       if (updateError) throw updateError
+      track.circleCreated()
+      track.onboardingCompleted({ circle_action: 'created' })
       setGeneratedCode(circle.code)
     } catch (err: any) {
       setError(err.message)
@@ -101,6 +104,8 @@ export default function OnboardingPage() {
         .update({ circle_id: circle.id })
         .eq('id', user.id)
       if (updateError) throw updateError
+      track.circleJoined()
+      track.onboardingCompleted({ circle_action: 'joined' })
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)

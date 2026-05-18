@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { setTarget } from '@/app/actions/targets'
 import { suggestMacros } from '@/app/actions/macro-suggestions'
+import { track } from '@/lib/analytics/analytics'
 import { Database } from '@/types/database.types'
 
 type BodyProfile = Database['public']['Tables']['body_profiles']['Row']
@@ -43,6 +44,12 @@ export function TargetSetupForm({ bodyProfile, existingTarget, onSuccess }: Targ
     setAiLoading(false)
 
     if (result.success && result.data) {
+      const days = Math.round((new Date(targetDate).getTime() - Date.now()) / 86400000)
+      track.aiMacrosSuggested({
+        current_weight: bodyProfile.current_weight_kg,
+        target_weight: parseFloat(targetWeight),
+        days_to_goal: days,
+      })
       setTargetCalories(result.data.calories.toString())
       setTargetProtein(result.data.protein_g.toString())
       setTargetCarbs(result.data.carbs_g.toString())
@@ -69,6 +76,12 @@ export function TargetSetupForm({ bodyProfile, existingTarget, onSuccess }: Targ
       })
 
       if (result.success) {
+        const days = Math.round((new Date(targetDate).getTime() - Date.now()) / 86400000)
+        track.targetSet({
+          target_weight: parseFloat(targetWeight),
+          days_to_goal: days,
+          used_ai_macros: !!targetCalories,
+        })
         setMessage('✅ Target set successfully!')
         setTimeout(() => { onSuccess?.() }, 1000)
       } else {

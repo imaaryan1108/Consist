@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { logMeal } from '@/app/actions/meals'
 import { analyzeNutrition } from '@/app/actions/nutrition'
+import { track } from '@/lib/analytics/analytics'
 
 interface MealLoggerProps {
   onSuccess?: () => void
@@ -33,6 +34,7 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
     try {
       const result = await analyzeNutrition(foodName)
       
+      track.aiAssistUsed({ food_name: foodName, success: !!result.success })
       if (result.success && result.data) {
         // Auto-fill the form with AI data
         setCalories(result.data.calories.toString())
@@ -83,6 +85,12 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
     setLoading(false)
 
     if (result.success) {
+      track.mealLogged({
+        meal_type: mealType,
+        calories: Number(calories),
+        used_ai_assist: !!protein && !!carbs && !!fats,
+        has_macros: !!(protein || carbs || fats),
+      })
       // Reset form
       setFoodName('')
       setCalories('')

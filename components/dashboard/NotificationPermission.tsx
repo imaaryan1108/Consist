@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { subscribeToPush, getPermissionState } from '@/lib/utils/push-notifications'
+import { track } from '@/lib/analytics/analytics'
 
 export function NotificationPermission() {
   const [state, setState] = useState<'idle' | 'prompt' | 'granted' | 'denied' | 'unsupported' | 'error'>('idle')
@@ -36,6 +37,7 @@ export function NotificationPermission() {
     setLoading(false)
     if (success) {
       setState('granted')
+      track.notificationEnabled()
     } else {
       setState('error')
     }

@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
+import { PostHogProvider } from '@/components/PostHogProvider'
+import { Suspense } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -40,9 +42,13 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Consist" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <Suspense>
+          <PostHogProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </PostHogProvider>
+        </Suspense>
         <ServiceWorkerRegister />
       </body>
     </html>

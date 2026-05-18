@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { identifyUser, resetAnalytics } from '@/lib/analytics/analytics'
 
 type AuthContextType = {
   user: User | null
@@ -55,6 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      if (session?.user) {
+        identifyUser(session.user.id, { email: session.user.email })
+      } else {
+        resetAnalytics()
+      }
     })
 
     return () => {

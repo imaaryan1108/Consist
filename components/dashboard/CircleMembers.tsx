@@ -6,6 +6,7 @@ import { Database } from '@/types/database.types'
 import { isToday, getDisplayStreak } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '@/lib/utils/haptic'
+import { track } from '@/lib/analytics/analytics'
 
 type User = Database['public']['Tables']['users']['Row']
 
@@ -71,6 +72,7 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
       if (result.success) {
         setPushedIds(prev => new Set(prev).add(targetId))
         showToast(`Pushed ${memberName} 👊`)
+        track.pushSent({ remaining_pushes: result.remainingPushes ?? 0 })
       } else {
         showToast(result.message || 'Could not push')
       }
