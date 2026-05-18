@@ -33,6 +33,8 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
+  const transcriptRef = useRef('')        // avoids stale closure in recognition.onend
+  const micPermissionRef = useRef(false)  // request mic permission once
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setAiMessage({ type, text })
@@ -96,6 +98,18 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
   }
 
   // ── Voice mode ────────────────────────────────────────
+  // Request mic permission once when switching to voice tab
+  const requestMicPermission = useCallback(async () => {
+    if (micPermissionRef.current) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(t => t.stop()) // just need permission, not the stream
+      micPermissionRef.current = true
+    } catch {
+      showMessage('error', 'Microphone permission denied.')
+    }
+  }, [])
+
   const startVoice = useCallback(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -104,7 +118,10 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
       return
     }
 
+    transcriptRef.current = ''
+    setVoiceTranscript('')
     haptic('medium')
+
     const recognition = new SpeechRecognition()
     recognition.lang = 'en-US'
     recognition.continuous = false
@@ -117,12 +134,13 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
       const transcript = Array.from(event.results)
         .map((r: any) => r[0].transcript)
         .join('')
+      transcriptRef.current = transcript   // keep ref in sync
       setVoiceTranscript(transcript)
     }
 
     recognition.onend = async () => {
-      const final = voiceTranscript || recognitionRef.current?._lastTranscript
-      if (!final?.trim()) {
+      const final = transcriptRef.current.trim()  // use ref — never stale
+      if (!final) {
         setAiStatus('idle')
         return
       }
@@ -136,17 +154,23 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
         setAiStatus('error')
         showMessage('error', result.message || 'Could not analyze. Try again.')
       }
+      transcriptRef.current = ''
       setVoiceTranscript('')
     }
 
-    recognition.onerror = () => {
-      setAiStatus('error')
-      showMessage('error', 'Microphone error. Check permissions.')
+    recognition.onerror = (e: any) => {
+      if (e.error !== 'aborted') {
+        setAiStatus('error')
+        showMessage('error', 'Microphone error. Check permissions.')
+      } else {
+        setAiStatus('idle')
+      }
+      transcriptRef.current = ''
       setVoiceTranscript('')
     }
 
     recognition.start()
-  }, [voiceTranscript])
+  }, [])
 
   const stopVoice = useCallback(() => {
     recognitionRef.current?.stop()
@@ -212,7 +236,14 @@ export function MealLogger({ onSuccess }: MealLoggerProps) {
             <button
               key={mode}
               type="button"
-              onClick={() => { setAiMode(mode); setAiStatus('idle'); setImagePreview(null); setVoiceTranscript('') }}
+              onClick={() => {
+                setAiMode(mode)
+                setAiStatus('idle')
+                setImagePreview(null)
+                setVoiceTranscript('')
+                transcriptRef.current = ''
+                if (mode === 'voice') requestMicPermission()
+              }}
               className={`py-3 flex flex-col items-center gap-0.5 text-[10px] font-black uppercase tracking-wider transition-all ${
                 aiMode === mode
                   ? 'bg-primary/10 text-primary border-b-2 border-primary'
