@@ -7,6 +7,8 @@ import { getTargetProgress } from './actions/targets'
 import { checkAndCreateMilestones } from './actions/milestones'
 import { shouldPromptWeeklyCheckin } from './actions/weekly-checkin'
 import { notifyCircleMembers, notifyUser } from '@/lib/utils/push-server'
+import { checkAndAwardTitles } from './actions/titles'
+import { checkAndUpdateChapter } from './actions/chapters'
 
 export async function punchIn() {
   const supabase = await createServerClient()
@@ -178,16 +180,23 @@ export async function punchIn() {
       url: '/dashboard',
     })
 
+    // Check and award titles + chapter progress
+    const [newTitles] = await Promise.all([
+      checkAndAwardTitles(userId),
+      checkAndUpdateChapter(user.circle_id),
+    ])
+
     revalidatePath('/dashboard')
-    
-    return { 
-      success: true, 
-      streak: currentStreak, 
+
+    return {
+      success: true,
+      streak: currentStreak,
       points: points.total,
       isNewRecord: points.isNewRecord,
       targetProgress,
       newMilestones: milestonesResult.milestones,
-      shouldWeeklyCheckin: shouldCheckin
+      shouldWeeklyCheckin: shouldCheckin,
+      newTitles,
     }
 
   } catch (error: any) {

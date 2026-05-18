@@ -29,6 +29,8 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 import { TiltCard } from '@/components/ui/TiltCard'
+import { ChapterProgress } from '@/components/gamification/ChapterProgress'
+import { NewTitleToast } from '@/components/gamification/NewTitleToast'
 import { getTodayDate, getDisplayStreak } from '@/lib/utils'
 import { haptic } from '@/lib/utils/haptic'
 import { track } from '@/lib/analytics/analytics'
@@ -48,6 +50,7 @@ export default function DashboardPage() {
   const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
   const [dailySummary, setDailySummary] = useState<any>(null)
   const [weeklySummary, setWeeklySummary] = useState<any>(null)
+  const [newTitles, setNewTitles] = useState<string[]>([])
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -258,6 +261,9 @@ export default function DashboardPage() {
           </button>
         </header>
 
+        {/* New Title Toast */}
+        <NewTitleToast titleKeys={newTitles} onClose={() => setNewTitles([])} />
+
         {/* Push Notification Permission Banner */}
         <NotificationPermission />
 
@@ -300,6 +306,7 @@ export default function DashboardPage() {
             hasConsisted={hasConsisted}
             currentStreak={displayStreak}
             onMilestones={(newMilestones) => setMilestones(newMilestones)}
+            onNewTitles={(titles) => setNewTitles(titles)}
             onWeeklyCheckinPrompt={() => {
               const today = new Date()
               const key = `checkin_dismissed_${today.getFullYear()}_${today.getMonth()}_${today.getDate()}`
@@ -334,6 +341,11 @@ export default function DashboardPage() {
         <section>
           <CircleMembers circleId={circle.id} currentUserId={user.id} />
         </section>
+        </AnimatedSection>
+
+        {/* Chapter Progress */}
+        <AnimatedSection delay={0.18}>
+          <ChapterProgress circleId={circle.id} />
         </AnimatedSection>
 
         {/* Today's Goals */}

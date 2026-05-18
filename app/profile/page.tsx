@@ -13,6 +13,11 @@ import { TargetSetupForm } from '@/components/transformation/TargetSetupForm'
 import { WeeklyCheckinModal } from '@/components/transformation/WeeklyCheckinModal'
 import { TargetProgress } from '@/app/actions/targets'
 import { LoadingState } from '@/components/ui/LoadingState'
+import { getUserTitles, setActiveTitle, TITLES, RARITY_COLORS } from '@/app/actions/titles'
+import { track } from '@/lib/analytics/analytics'
+import { TitleBadge } from '@/components/gamification/TitleBadge'
+import { BattleScars } from '@/components/gamification/BattleScars'
+import { motion } from 'framer-motion'
 
 type User = Database['public']['Tables']['users']['Row']
 type Circle = Database['public']['Tables']['circles']['Row']
@@ -28,6 +33,8 @@ export default function ProfilePage() {
   const [target, setTarget] = useState<Target | null>(null)
   const [targetProgress, setTargetProgress] = useState<TargetProgress | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userTitles, setUserTitles] = useState<any[]>([])
+  const [settingTitle, setSettingTitle] = useState(false)
   const [showWeeklyCheckin, setShowWeeklyCheckin] = useState(false)
   const [editingTarget, setEditingTarget] = useState(false)
 
@@ -70,6 +77,10 @@ export default function ProfilePage() {
         setBodyProfile(bodyProfileData)
         setTarget(targetData)
         setTargetProgress(progressData)
+
+        // Fetch earned titles
+        const titles = await getUserTitles(authUser.id)
+        setUserTitles(titles)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -176,6 +187,11 @@ export default function ProfilePage() {
                 {user.name.charAt(0).toUpperCase()}
             </div>
             <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">{user.name}</h2>
+            {userTitles.find(t => t.is_active) && (
+              <div className="flex justify-center mb-2">
+                <TitleBadge titleKey={userTitles.find(t => t.is_active)!.title_key} size="md" animate />
+              </div>
+            )}
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">
                 Operative since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
             </p>
@@ -386,6 +402,75 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Titles & Battle Scars */}
+        {userTitles.length > 0 && (
+          <div className="space-y-4 pt-6 border-t border-white/5">
+            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] px-2 italic">
+              Your Titles
+            </h3>
+
+            <div className="glass-card rounded-[2rem] p-5 space-y-3">
+              {userTitles.map((t, i) => {
+                const title = TITLES[t.title_key]
+                if (!title) return null
+                const colors = RARITY_COLORS[title.rarity]
+                const isActive = t.is_active
+
+                return (
+                  <motion.button
+                    key={t.title_key}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    disabled={settingTitle || isActive}
+                    onClick={async () => {
+                      setSettingTitle(true)
+                      await setActiveTitle(t.title_key)
+                      track.titleEquipped({ title_key: t.title_key })
+                      setUserTitles(prev => prev.map(ut => ({
+                        ...ut,
+                        is_active: ut.title_key === t.title_key
+                      })))
+                      setSettingTitle(false)
+                    }}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                      isActive
+                        ? `${colors} shadow-sm`
+                        : 'bg-white/3 border-white/5 hover:border-white/10'
+                    }`}
+                  >
+                    <span className="text-2xl">{title.emoji}</span>
+                    <div className="flex-1 text-left">
+                      <p className="font-black text-sm tracking-tight">{title.label}</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{title.description}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${colors}`}>
+                        {title.rarity}
+                      </span>
+                      {isActive && (
+                        <span className="text-[9px] font-black text-primary uppercase tracking-wider">Wearing</span>
+                      )}
+                    </div>
+                  </motion.button>
+                )
+              })}
+
+              {userTitles.length === 0 && (
+                <p className="text-center text-slate-600 text-xs font-bold py-4">
+                  Punch in to earn your first title.
+                </p>
+              )}
+            </div>
+
+            {/* Battle Scars */}
+            <BattleScars
+              scars={[]}
+              longestEver={user?.longest_streak ?? 0}
+            />
+          </div>
+        )}
 
         {/* Account Actions */}
         <div className="space-y-4 pt-4">

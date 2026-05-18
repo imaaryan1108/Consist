@@ -7,6 +7,8 @@ import { isToday, getDisplayStreak } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '@/lib/utils/haptic'
 import { track } from '@/lib/analytics/analytics'
+import { getActiveTitle } from '@/app/actions/titles'
+import { TitleBadge } from '@/components/gamification/TitleBadge'
 
 type User = Database['public']['Tables']['users']['Row']
 
@@ -22,6 +24,7 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
   const [pushingId, setPushingId] = useState<string | null>(null)
   const [pushedIds, setPushedIds] = useState<Set<string>>(new Set())
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [activeTitles, setActiveTitles] = useState<Record<string, string | null>>({})
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +33,20 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
 
   useEffect(() => {
     if (initialMembers.length === 0) fetchMembers()
+  }, [circleId])
+
+  // Fetch active titles for all members once members load
+  useEffect(() => {
+    if (!members.length) return
+    Promise.all(members.map(m => getActiveTitle(m.id).then(t => ({ id: m.id, title: t }))))
+      .then(results => {
+        const map: Record<string, string | null> = {}
+        results.forEach(r => { map[r.id] = r.title })
+        setActiveTitles(map)
+      })
+  }, [members.length])
+
+  useEffect(() => {
 
     const channel = supabase
       .channel(`circle_members:${circleId}`)
@@ -39,7 +56,7 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [circleId])
+  }, [circleId, members.length])
 
   const fetchMembers = async () => {
     try {
@@ -191,8 +208,13 @@ export function CircleMembers({ circleId, currentUserId, initialMembers = [] }: 
                   {isMe ? 'YOU' : member.name.split(' ')[0]}
                 </p>
 
+                {/* Active title */}
+                {activeTitles[member.id] && (
+                  <TitleBadge titleKey={activeTitles[member.id]!} size="sm" showLabel={false} />
+                )}
+
                 {/* Push hint */}
-                {canPush && !alreadyPushed && (
+                {canPush && !alreadyPushed && !activeTitles[member.id] && (
                   <p className="text-[8px] text-slate-700 uppercase tracking-wide -mt-1">tap to push</p>
                 )}
               </motion.div>

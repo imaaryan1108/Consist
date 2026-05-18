@@ -601,6 +601,18 @@ export type Database = {
           },
         ]
       }
+      user_titles: {
+        Row: { id: string; user_id: string; title_key: string; earned_at: string; is_active: boolean }
+        Insert: { id?: string; user_id: string; title_key: string; earned_at?: string; is_active?: boolean }
+        Update: { id?: string; user_id?: string; title_key?: string; earned_at?: string; is_active?: boolean }
+        Relationships: []
+      }
+      circle_chapters: {
+        Row: { id: string; circle_id: string; chapter_number: number; chapter_name: string; started_at: string; completed_at: string | null; punch_in_rate: number | null; is_complete: boolean }
+        Insert: { id?: string; circle_id: string; chapter_number: number; chapter_name: string; started_at: string; completed_at?: string | null; punch_in_rate?: number | null; is_complete?: boolean }
+        Update: { id?: string; circle_id?: string; chapter_number?: number; chapter_name?: string; started_at?: string; completed_at?: string | null; punch_in_rate?: number | null; is_complete?: boolean }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { getStreakMessage } from '@/lib/utils'
 import { haptic } from '@/lib/utils/haptic'
 import { track } from '@/lib/analytics/analytics'
+import { TITLES } from '@/app/actions/titles'
 import { Database } from '@/types/database.types'
 
 type Milestone = Database['public']['Tables']['milestones']['Row']
@@ -17,13 +18,15 @@ interface ConsistButtonProps {
   currentStreak: number
   onMilestones?: (milestones: Milestone[]) => void
   onWeeklyCheckinPrompt?: () => void
+  onNewTitles?: (titles: string[]) => void
 }
 
-export function ConsistButton({ 
-  hasConsisted, 
+export function ConsistButton({
+  hasConsisted,
   currentStreak,
   onMilestones,
-  onWeeklyCheckinPrompt
+  onWeeklyCheckinPrompt,
+  onNewTitles,
 }: ConsistButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -48,6 +51,13 @@ export function ConsistButton({
       haptic('success')
       setConsisted(true)
       if (result.streak) setStreak(result.streak)
+      if (result.newTitles?.length) {
+        onNewTitles?.(result.newTitles)
+        result.newTitles.forEach(key => {
+          const t = TITLES[key]
+          if (t) track.titleEarned({ title_key: key, rarity: t.rarity })
+        })
+      }
       track.punchIn({
         streak: result.streak ?? 0,
         points: result.points ?? 0,

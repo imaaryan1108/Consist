@@ -64,4 +64,14 @@ export const track = {
   // Engagement
   circleCodeCopied: () =>
     posthog.capture('circle_code_copied'),
+
+  // Gamification
+  titleEarned: (props: { title_key: string; rarity: string }) =>
+    posthog.capture('title_earned', props),
+
+  titleEquipped: (props: { title_key: string }) =>
+    posthog.capture('title_equipped', props),
+
+  chapterCompleted: (props: { chapter_number: number; chapter_name: string; punch_in_rate: number }) =>
+    posthog.capture('chapter_completed', props),
 }
